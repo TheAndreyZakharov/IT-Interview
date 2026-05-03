@@ -7,63 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
 node_modules
-
-# Build output
 dist
-build
-coverage
+dist-ssr
+*.local
 
-# Vite
-.vite
-
-# TypeScript
-*.tsbuildinfo
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Editor folders and files
+# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/tasks.json
 .idea
-*.swp
-*.swo
-
-# OS files
 .DS_Store
-.AppleDouble
-.LSOverride
-Icon?
-._*
-.Spotlight-V100
-.Trashes
-
-# MacOS folders
-.DocumentRevisions-V100
-.fseventsd
-.TemporaryItems
-.VolumeIcon.icns
-
-# Temporary files
-tmp
-temp
-*.tmp
-
-# Cache
-.cache
-.eslintcache
-
-# Optional package manager files
-.pnpm-store
-.npm
-
-# Misc
-*.pid
-*.seed
-*.pid.lock
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
