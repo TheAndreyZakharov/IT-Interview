@@ -22,6 +22,15 @@ type ContentIndex = {
 
 const EMPTY_FILES: string[] = []
 
+function buildContentUrl(file: string) {
+  const encodedPath = file
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+
+  return `${import.meta.env.BASE_URL}content/${encodedPath}`
+}
+
 export default function App() {
   const [data, setData] = useState<ContentIndex | null>(null)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
@@ -35,7 +44,12 @@ export default function App() {
     let isCancelled = false
 
     fetch(`${import.meta.env.BASE_URL}content-index.json`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load index: ${res.status}`)
+        }
+        return res.json()
+      })
       .then((json: ContentIndex) => {
         if (!isCancelled) {
           setData(json)
@@ -97,7 +111,7 @@ export default function App() {
     setIsLoadingFile(true)
 
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL}content/${file}`)
+      const res = await fetch(buildContentUrl(file))
 
       if (!res.ok) {
         throw new Error(`Failed to load file: ${res.status}`)
