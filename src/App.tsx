@@ -414,7 +414,10 @@ function formatDate(isoDate: string, language: Language) {
   })
 }
 
-function getStatsForBankLanguage(data: ContentIndex | null, bankLanguage: Language): LanguageStats {
+function getStatsForBankLanguage(
+  data: ContentIndex | null,
+  bankLanguage: Language
+): LanguageStats {
   if (!data) {
     return EMPTY_LANGUAGE_STATS
   }
@@ -424,7 +427,10 @@ function getStatsForBankLanguage(data: ContentIndex | null, bankLanguage: Langua
     : data.contentStats.byLanguage.EN
 }
 
-function getContentForBankLanguage(data: ContentData | null, bankLanguage: Language): LanguageContentData {
+function getContentForBankLanguage(
+  data: ContentData | null,
+  bankLanguage: Language
+): LanguageContentData {
   if (!data) {
     return EMPTY_LANGUAGE_CONTENT
   }
@@ -530,6 +536,40 @@ function buildOverviewEntries(
   }
 
   return result
+}
+
+function getInitialOverviewSelectionId(tocFlat: TocFlatNode[]) {
+  return tocFlat[0]?.id ?? ''
+}
+
+function getSelectedNodeWithDescendants(selectedId: string, tocFlat: TocFlatNode[]) {
+  const node = tocFlat.find((item) => item.id === selectedId)
+
+  if (!node) {
+    return {
+      node: null,
+      allowedIds: new Set<string>(),
+    }
+  }
+
+  return {
+    node,
+    allowedIds: new Set([node.id, ...node.childrenIds]),
+  }
+}
+
+function getNodeTitleTrail(nodeId: string, tocFlat: TocFlatNode[]) {
+  const tocMap = new Map(tocFlat.map((item) => [item.id, item]))
+  const node = tocMap.get(nodeId)
+
+  if (!node) {
+    return []
+  }
+
+  return [...node.parentIds, node.id]
+    .map((id) => tocMap.get(id))
+    .filter((item): item is TocFlatNode => Boolean(item))
+    .map((item) => item.title)
 }
 
 type SharedPageProps = {
@@ -747,7 +787,11 @@ function HomePage({
   }
 
   return (
-    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+    <main
+      className={`page-fade min-h-screen ${
+        isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
+      }`}
+    >
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-8">
         <SiteHeader
           interfaceLanguage={interfaceLanguage}
@@ -764,18 +808,34 @@ function HomePage({
                 {text.heroTitle}
               </h1>
 
-              <p className={`mt-6 text-lg leading-8 sm:text-xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <p
+                className={`mt-6 text-lg leading-8 sm:text-xl ${
+                  isDark ? 'text-slate-300' : 'text-slate-600'
+                }`}
+              >
                 {text.heroSubtitle}
               </p>
             </div>
 
-            <div className={`mx-auto mt-10 max-w-4xl rounded-3xl border p-6 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+            <div
+              className={`mx-auto mt-10 max-w-4xl rounded-3xl border p-6 ${
+                isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+              }`}
+            >
               <div className="text-center">
                 <h2 className="text-xl font-semibold">{text.languageTitle}</h2>
-                <p className={`mt-2 text-sm leading-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p
+                  className={`mt-2 text-sm leading-6 ${
+                    isDark ? 'text-slate-400' : 'text-slate-500'
+                  }`}
+                >
                   {text.languageHint}
                 </p>
-                <p className={`mt-2 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p
+                  className={`mt-2 text-sm ${
+                    isDark ? 'text-slate-400' : 'text-slate-500'
+                  }`}
+                >
                   {text.chooseLanguageCardHint}
                 </p>
               </div>
@@ -799,8 +859,16 @@ function HomePage({
                 />
               </div>
 
-              <div className={`mt-6 rounded-2xl border p-4 text-center ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
-                <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <div
+                className={`mt-6 rounded-2xl border p-4 text-center ${
+                  isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+                }`}
+              >
+                <div
+                  className={`text-sm ${
+                    isDark ? 'text-slate-400' : 'text-slate-500'
+                  }`}
+                >
                   {text.updatedAt}
                 </div>
                 <div className="mt-2 text-lg font-semibold">
@@ -836,7 +904,11 @@ function MenuPage({
   }, [location.pathname])
 
   return (
-    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+    <main
+      className={`page-fade min-h-screen ${
+        isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
+      }`}
+    >
       <div className="mx-auto max-w-7xl px-6 py-8">
         <SiteHeader
           interfaceLanguage={interfaceLanguage}
@@ -849,24 +921,42 @@ function MenuPage({
         <div className="mt-10 flex flex-col gap-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className={`text-sm uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <p
+                className={`text-sm uppercase tracking-[0.24em] ${
+                  isDark ? 'text-slate-400' : 'text-slate-500'
+                }`}
+              >
                 {text.modeLabel}
               </p>
               <h1 className="mt-2 text-3xl font-semibold">{text.menuTitle}</h1>
-              <p className={`mt-3 max-w-3xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <p
+                className={`mt-3 max-w-3xl ${
+                  isDark ? 'text-slate-300' : 'text-slate-600'
+                }`}
+              >
                 {text.menuSubtitle}
               </p>
             </div>
 
             <Link
               to="/"
-              className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+              className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+                isDark
+                  ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
             >
               {text.backHome}
             </Link>
           </div>
 
-          <div className={`inline-flex w-fit items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${isDark ? 'border-white/10 bg-white/5 text-slate-300' : 'border-slate-200 bg-white text-slate-600'}`}>
+          <div
+            className={`inline-flex w-fit items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${
+              isDark
+                ? 'border-white/10 bg-white/5 text-slate-300'
+                : 'border-slate-200 bg-white text-slate-600'
+            }`}
+          >
             <span className="font-medium">{text.selectedLanguage}:</span>
             <span className={isDark ? 'text-white' : 'text-slate-900'}>
               {bankLanguage === 'ru' ? text.languageRu : text.languageEn}
@@ -926,7 +1016,10 @@ function AllMarathonPage({
   contentData,
   onInterfaceLanguageChange,
 }: AllMarathonPageProps) {
-  const content = useMemo(() => getContentForBankLanguage(contentData, bankLanguage), [contentData, bankLanguage])
+  const content = useMemo(
+    () => getContentForBankLanguage(contentData, bankLanguage),
+    [contentData, bankLanguage]
+  )
   const [shuffleSeed, setShuffleSeed] = useState(0)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnswerOpen, setIsAnswerOpen] = useState(false)
@@ -940,7 +1033,11 @@ function AllMarathonPage({
   const currentQuestion = questions[currentIndex] ?? null
 
   return (
-    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+    <main
+      className={`page-fade min-h-screen ${
+        isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
+      }`}
+    >
       <div className="mx-auto max-w-7xl px-6 py-8">
         <SiteHeader
           interfaceLanguage={interfaceLanguage}
@@ -977,7 +1074,11 @@ function AllMarathonPage({
                 setCurrentIndex(0)
                 setIsAnswerOpen(false)
               }}
-              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                isDark
+                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                  : 'border-slate-300 bg-white hover:bg-slate-50'
+              }`}
             >
               {text.shuffleAgain}
             </button>
@@ -1002,7 +1103,10 @@ function CustomMarathonPage({
   contentData,
   onInterfaceLanguageChange,
 }: CustomMarathonPageProps) {
-  const content = useMemo(() => getContentForBankLanguage(contentData, bankLanguage), [contentData, bankLanguage])
+  const content = useMemo(
+    () => getContentForBankLanguage(contentData, bankLanguage),
+    [contentData, bankLanguage]
+  )
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isSelectorOpen, setIsSelectorOpen] = useState(true)
   const [questions, setQuestions] = useState<ParsedQuestion[]>([])
@@ -1038,10 +1142,11 @@ function CustomMarathonPage({
       return
     }
 
-    const filtered = content.questions.filter((question) =>
-      question.headingIds.some((id) => selectedSet.has(id)) ||
-      selectedSet.has(question.topicId) ||
-      selectedSet.has(question.subtopicId)
+    const filtered = content.questions.filter(
+      (question) =>
+        question.headingIds.some((id) => selectedSet.has(id)) ||
+        selectedSet.has(question.topicId) ||
+        selectedSet.has(question.subtopicId)
     )
 
     setQuestions(shuffleArray(filtered))
@@ -1053,7 +1158,11 @@ function CustomMarathonPage({
   const currentQuestion = questions[currentIndex] ?? null
 
   return (
-    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+    <main
+      className={`page-fade min-h-screen ${
+        isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
+      }`}
+    >
       <div className="mx-auto max-w-7xl px-6 py-8">
         <SiteHeader
           interfaceLanguage={interfaceLanguage}
@@ -1099,7 +1208,11 @@ function CustomMarathonPage({
               <button
                 type="button"
                 onClick={() => setIsSelectorOpen(true)}
-                className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+                className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                  isDark
+                    ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                    : 'border-slate-300 bg-white hover:bg-slate-50'
+                }`}
               >
                 {text.closeSelection}
               </button>
@@ -1127,9 +1240,13 @@ function OverviewPage({
   contentData,
   onInterfaceLanguageChange,
 }: OverviewPageProps) {
-  const content = useMemo(() => getContentForBankLanguage(contentData, bankLanguage), [contentData, bankLanguage])
+  const content = useMemo(
+    () => getContentForBankLanguage(contentData, bankLanguage),
+    [contentData, bankLanguage]
+  )
   const isDark = theme === 'dark'
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [selectedNodeId, setSelectedNodeId] = useState('')
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const elementRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const [activeHeadingId, setActiveHeadingId] = useState<string>('')
@@ -1139,12 +1256,24 @@ function OverviewPage({
     [content.questions, content.tocFlat]
   )
 
+  const resolvedSelectedNodeId = useMemo(() => {
+    if (selectedNodeId) {
+      return selectedNodeId
+    }
+
+    return getInitialOverviewSelectionId(content.tocFlat)
+  }, [selectedNodeId, content.tocFlat])
+
   const title =
     mode === 'questions'
       ? text.menuCards.questionsOverview.title
       : text.menuCards.answersOverview.title
 
   useEffect(() => {
+    if (mode !== 'questions') {
+      return
+    }
+
     const container = scrollContainerRef.current
     if (!container) {
       return
@@ -1158,7 +1287,10 @@ function OverviewPage({
 
       const headingNodes = Object.entries(elementRefs.current)
         .map(([id, element]) => ({ id, element }))
-        .filter((item): item is { id: string; element: HTMLDivElement } => Boolean(item.element))
+        .filter(
+          (item): item is { id: string; element: HTMLDivElement } =>
+            Boolean(item.element)
+        )
 
       if (headingNodes.length === 0) {
         return
@@ -1180,9 +1312,38 @@ function OverviewPage({
     return () => {
       container.removeEventListener('scroll', handleScroll)
     }
-  }, [entries, activeHeadingId])
+  }, [entries, activeHeadingId, mode])
+
+  const selectedNodeData = useMemo(
+    () => getSelectedNodeWithDescendants(resolvedSelectedNodeId, content.tocFlat),
+    [resolvedSelectedNodeId, content.tocFlat]
+  )
+
+  const selectedTitleTrail = useMemo(
+    () => getNodeTitleTrail(resolvedSelectedNodeId, content.tocFlat),
+    [resolvedSelectedNodeId, content.tocFlat]
+  )
+
+  const selectedQuestions = useMemo(() => {
+    if (mode !== 'answers') {
+      return []
+    }
+
+    if (!selectedNodeData.node) {
+      return []
+    }
+
+    return content.questions.filter((question) =>
+      question.headingIds.some((id) => selectedNodeData.allowedIds.has(id))
+    )
+  }, [mode, content.questions, selectedNodeData])
 
   function scrollToHeading(id: string) {
+    if (mode === 'answers') {
+      setSelectedNodeId(id)
+      return
+    }
+
     const container = scrollContainerRef.current
     const target = elementRefs.current[id]
 
@@ -1197,9 +1358,15 @@ function OverviewPage({
     setActiveHeadingId(id)
   }
 
+  const sidebarActiveId = mode === 'answers' ? resolvedSelectedNodeId : activeHeadingId
+
   if (mode === 'answers' && bankLanguage === 'en') {
     return (
-      <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+      <main
+        className={`page-fade min-h-screen ${
+          isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
+        }`}
+      >
         <div className="mx-auto max-w-7xl px-6 py-8">
           <SiteHeader
             interfaceLanguage={interfaceLanguage}
@@ -1211,7 +1378,11 @@ function OverviewPage({
 
           <div className="mt-10 flex items-center justify-between gap-4">
             <div>
-              <p className={`text-sm uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <p
+                className={`text-sm uppercase tracking-[0.24em] ${
+                  isDark ? 'text-slate-400' : 'text-slate-500'
+                }`}
+              >
                 {text.modeLabel}
               </p>
               <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
@@ -1229,7 +1400,11 @@ function OverviewPage({
             </Link>
           </div>
 
-          <div className={`mt-10 rounded-3xl border p-8 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+          <div
+            className={`mt-10 rounded-3xl border p-8 ${
+              isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+            }`}
+          >
             <div
               className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                 isDark ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'
@@ -1238,7 +1413,11 @@ function OverviewPage({
               {text.unavailableBadge}
             </div>
 
-            <p className={`mt-5 text-lg leading-8 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            <p
+              className={`mt-5 text-lg leading-8 ${
+                isDark ? 'text-slate-300' : 'text-slate-600'
+              }`}
+            >
               {text.unavailableAnswersMode}
             </p>
           </div>
@@ -1248,7 +1427,11 @@ function OverviewPage({
   }
 
   return (
-    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+    <main
+      className={`page-fade min-h-screen ${
+        isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
+      }`}
+    >
       <div className="mx-auto max-w-[1600px] px-6 py-8">
         <SiteHeader
           interfaceLanguage={interfaceLanguage}
@@ -1260,7 +1443,11 @@ function OverviewPage({
 
         <div className="mt-10 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className={`text-sm uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p
+              className={`text-sm uppercase tracking-[0.24em] ${
+                isDark ? 'text-slate-400' : 'text-slate-500'
+              }`}
+            >
               {text.modeLabel}
             </p>
             <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
@@ -1294,12 +1481,12 @@ function OverviewPage({
 
         <div className={`mt-8 flex gap-6 ${isSidebarOpen ? 'xl:flex-row' : 'xl:flex-col'}`}>
           {isSidebarOpen && (
-            <aside
-              className={`xl:sticky xl:top-6 xl:h-[calc(100vh-4rem)] xl:w-[360px] xl:flex-shrink-0 ${
-                isDark ? '' : ''
-              }`}
-            >
-              <div className={`h-full overflow-hidden rounded-3xl border ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+            <aside className="xl:sticky xl:top-6 xl:h-[calc(100vh-4rem)] xl:w-[42%] xl:max-w-[50%] xl:min-w-[320px] xl:flex-shrink-0">
+              <div
+                className={`h-full overflow-hidden rounded-3xl border ${
+                  isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+                }`}
+              >
                 <div
                   className={`sticky top-0 z-20 border-b px-5 py-4 ${
                     isDark
@@ -1313,7 +1500,7 @@ function OverviewPage({
                 <div className="h-[calc(100%-68px)] overflow-y-auto px-4 py-4">
                   <OverviewTocTree
                     nodes={content.tocTree}
-                    activeHeadingId={activeHeadingId}
+                    activeHeadingId={sidebarActiveId}
                     onSelect={scrollToHeading}
                     theme={theme}
                   />
@@ -1323,36 +1510,119 @@ function OverviewPage({
           )}
 
           <section className={`${isSidebarOpen ? 'min-w-0 flex-1' : 'mx-auto w-full max-w-5xl'}`}>
-            <div
-              ref={scrollContainerRef}
-              className={`h-[calc(100vh-12rem)] overflow-y-auto rounded-3xl border px-6 py-6 ${
-                isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
-              }`}
-            >
-              {entries.length === 0 ? (
-                <div className={`rounded-3xl border p-8 ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
-                  <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
-                    {text.noContentAvailable}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-0">
-                  {entries.map((entry, index) => (
-                    <OverviewQuestionBlock
-                      key={entry.key}
-                      entry={entry}
-                      index={index}
-                      mode={mode}
-                      text={text}
-                      theme={theme}
-                      registerAnchor={(id, element) => {
-                        elementRefs.current[id] = element
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            {mode === 'questions' ? (
+              <div
+                ref={scrollContainerRef}
+                className={`h-[calc(100vh-12rem)] overflow-y-auto rounded-3xl border px-6 py-6 ${
+                  isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+                }`}
+              >
+                {entries.length === 0 ? (
+                  <div
+                    className={`rounded-3xl border p-8 ${
+                      isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+                    }`}
+                  >
+                    <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
+                      {text.noContentAvailable}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-0">
+                    {entries.map((entry, index) => (
+                      <OverviewQuestionBlock
+                        key={entry.key}
+                        entry={entry}
+                        index={index}
+                        mode={mode}
+                        text={text}
+                        theme={theme}
+                        registerAnchor={(id, element) => {
+                          elementRefs.current[id] = element
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                className={`rounded-3xl border px-6 py-6 ${
+                  isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+                }`}
+              >
+                {!selectedNodeData.node ? (
+                  <div
+                    className={`rounded-3xl border p-8 ${
+                      isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+                    }`}
+                  >
+                    <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
+                      {text.noContentAvailable}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div
+                      className={`sticky top-0 z-20 rounded-3xl border px-5 py-4 backdrop-blur ${
+                        isDark
+                          ? 'border-white/10 bg-slate-950/92'
+                          : 'border-slate-200 bg-white/92'
+                      }`}
+                    >
+                      <div
+                        className={`text-xs uppercase tracking-[0.2em] ${
+                          isDark ? 'text-slate-400' : 'text-slate-500'
+                        }`}
+                      >
+                        {text.stickyContext}
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        {selectedTitleTrail.map((item, index) => (
+                          <div
+                            key={`${item}-${index}`}
+                            className={
+                              index === 0
+                                ? 'text-2xl font-semibold'
+                                : index === 1
+                                  ? 'text-lg font-semibold'
+                                  : 'text-sm font-semibold'
+                            }
+                          >
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedQuestions.length === 0 ? (
+                      <div
+                        className={`rounded-3xl border p-8 ${
+                          isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+                        }`}
+                      >
+                        <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
+                          {text.noContentAvailable}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {selectedQuestions.map((question, index) => (
+                          <OverviewAnswerSectionQuestionBlock
+                            key={question.id}
+                            question={question}
+                            index={index}
+                            text={text}
+                            theme={theme}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         </div>
       </div>
@@ -1494,8 +1764,16 @@ function OverviewQuestionBlock({
 
       <div className={`${mode === 'answers' ? 'py-6' : 'py-4'}`}>
         {mode === 'answers' ? (
-          <div className={`rounded-3xl border p-6 ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
-            <div className={`text-xs uppercase tracking-[0.2em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <div
+            className={`rounded-3xl border p-6 ${
+              isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+            }`}
+          >
+            <div
+              className={`text-xs uppercase tracking-[0.2em] ${
+                isDark ? 'text-slate-400' : 'text-slate-500'
+              }`}
+            >
               {text.questionOf} {index + 1}
             </div>
 
@@ -1503,9 +1781,17 @@ function OverviewQuestionBlock({
               {entry.question.text}
             </h3>
 
-            <div className={`my-5 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`} />
+            <div
+              className={`my-5 border-t ${
+                isDark ? 'border-white/10' : 'border-slate-200'
+              }`}
+            />
 
-            <div className={`leading-7 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+            <div
+              className={`leading-7 ${
+                isDark ? 'text-slate-200' : 'text-slate-700'
+              }`}
+            >
               {entry.question.hasAnswer ? (
                 <FormattedAnswer text={entry.question.answer} />
               ) : (
@@ -1514,12 +1800,68 @@ function OverviewQuestionBlock({
             </div>
           </div>
         ) : (
-          <div className={`border-b pb-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+          <div
+            className={`border-b pb-4 ${
+              isDark ? 'border-white/10' : 'border-slate-200'
+            }`}
+          >
             <div className="flex gap-3">
-              <span className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>•</span>
+              <span className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                •
+              </span>
               <div className="text-lg leading-8">{entry.question.text}</div>
             </div>
           </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+type OverviewAnswerSectionQuestionBlockProps = {
+  question: ParsedQuestion
+  index: number
+  text: Dictionary
+  theme: ThemeMode
+}
+
+function OverviewAnswerSectionQuestionBlock({
+  question,
+  index,
+  text,
+  theme,
+}: OverviewAnswerSectionQuestionBlockProps) {
+  const isDark = theme === 'dark'
+
+  return (
+    <div
+      className={`rounded-3xl border p-6 ${
+        isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+      }`}
+    >
+      <div
+        className={`text-xs uppercase tracking-[0.2em] ${
+          isDark ? 'text-slate-400' : 'text-slate-500'
+        }`}
+      >
+        {text.questionOf} {index + 1}
+      </div>
+
+      <h3 className="mt-3 text-xl font-semibold leading-8">{question.text}</h3>
+
+      <div
+        className={`my-5 border-t ${
+          isDark ? 'border-white/10' : 'border-slate-200'
+        }`}
+      />
+
+      <div
+        className={`leading-7 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}
+      >
+        {question.hasAnswer ? (
+          <FormattedAnswer text={question.answer} />
+        ) : (
+          <p>{text.answersSoon}</p>
         )}
       </div>
     </div>
@@ -1551,15 +1893,26 @@ function TopicSelectorPanel({
 }: TopicSelectorPanelProps) {
   const isDark = theme === 'dark'
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
-  const flatMap = useMemo(() => new Map(tocFlat.map((item) => [item.id, item])), [tocFlat])
+  const flatMap = useMemo(
+    () => new Map(tocFlat.map((item) => [item.id, item])),
+    [tocFlat]
+  )
 
   return (
     <section className="mt-10">
-      <div className={`rounded-3xl border p-6 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+      <div
+        className={`rounded-3xl border p-6 ${
+          isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+        }`}
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-semibold">{text.chooseTopicsTitle}</h1>
-            <p className={`mt-3 max-w-3xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            <p
+              className={`mt-3 max-w-3xl ${
+                isDark ? 'text-slate-300' : 'text-slate-600'
+              }`}
+            >
               {text.chooseTopicsHint}
             </p>
           </div>
@@ -1567,35 +1920,57 @@ function TopicSelectorPanel({
           <div className="flex flex-wrap gap-3">
             <Link
               to="/menu"
-              className={`inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+              className={`inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                isDark
+                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                  : 'border-slate-300 bg-white hover:bg-slate-50'
+              }`}
             >
               {text.backToModes}
             </Link>
             <button
               type="button"
               onClick={onSelectAll}
-              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                isDark
+                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                  : 'border-slate-300 bg-white hover:bg-slate-50'
+              }`}
             >
               {text.selectAll}
             </button>
             <button
               type="button"
               onClick={onClearAll}
-              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                isDark
+                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                  : 'border-slate-300 bg-white hover:bg-slate-50'
+              }`}
             >
               {text.clearAll}
             </button>
             <button
               type="button"
               onClick={onStart}
-              className={`rounded-2xl px-5 py-2 text-sm font-semibold transition ${isDark ? 'bg-white text-slate-950 hover:bg-slate-100' : 'bg-slate-950 text-white hover:bg-slate-800'}`}
+              className={`rounded-2xl px-5 py-2 text-sm font-semibold transition ${
+                isDark
+                  ? 'bg-white text-slate-950 hover:bg-slate-100'
+                  : 'bg-slate-950 text-white hover:bg-slate-800'
+              }`}
             >
               {text.startMarathon}
             </button>
           </div>
         </div>
 
-        <div className={`mt-6 inline-flex rounded-2xl border px-4 py-2 text-sm ${isDark ? 'border-white/10 bg-black/10 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+        <div
+          className={`mt-6 inline-flex rounded-2xl border px-4 py-2 text-sm ${
+            isDark
+              ? 'border-white/10 bg-black/10 text-slate-300'
+              : 'border-slate-200 bg-slate-50 text-slate-600'
+          }`}
+        >
           {text.selectedItems}: {selectedIds.length}
         </div>
 
@@ -1619,7 +1994,11 @@ function TopicSelectorPanel({
         )}
 
         {selectedIds.length === 0 && (
-          <p className={`mt-6 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <p
+            className={`mt-6 text-sm ${
+              isDark ? 'text-slate-400' : 'text-slate-500'
+            }`}
+          >
             {text.nothingSelected}
           </p>
         )}
@@ -1651,7 +2030,11 @@ function TopicTreeNode({
   }
 
   return (
-    <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
+    <div
+      className={`rounded-2xl border p-4 ${
+        isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+      }`}
+    >
       <label className="flex cursor-pointer items-start gap-3">
         <input
           type="checkbox"
@@ -1659,7 +2042,11 @@ function TopicTreeNode({
           onChange={() => onToggleNode(flatNode)}
           className="mt-1 h-4 w-4"
         />
-        <span className={`leading-7 ${node.level === 2 ? 'text-lg font-semibold' : node.level === 3 ? 'font-medium' : ''}`}>
+        <span
+          className={`leading-7 ${
+            node.level === 2 ? 'text-lg font-semibold' : node.level === 3 ? 'font-medium' : ''
+          }`}
+        >
           {node.title}
         </span>
       </label>
@@ -1714,7 +2101,9 @@ function QuestionMarathonLayout({
   extraAction,
 }: QuestionMarathonLayoutProps) {
   const isDark = theme === 'dark'
-  const subtopicTrail = currentQuestion ? getQuestionSubtopicTrail(currentQuestion, tocFlat) : []
+  const subtopicTrail = currentQuestion
+    ? getQuestionSubtopicTrail(currentQuestion, tocFlat)
+    : []
 
   return (
     <section className="mt-10">
@@ -1730,7 +2119,11 @@ function QuestionMarathonLayout({
           {extraAction}
           <Link
             to="/menu"
-            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+              isDark
+                ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
           >
             {text.backToModes}
           </Link>
@@ -1738,15 +2131,29 @@ function QuestionMarathonLayout({
       </div>
 
       {questions.length === 0 || !currentQuestion ? (
-        <div className={`mt-10 rounded-3xl border p-8 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+        <div
+          className={`mt-10 rounded-3xl border p-8 ${
+            isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+          }`}
+        >
           <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
             {text.noQuestionsForSelection}
           </p>
         </div>
       ) : (
-        <div className={`mt-10 rounded-3xl border p-6 shadow-sm ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+        <div
+          className={`mt-10 rounded-3xl border p-6 shadow-sm ${
+            isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+          }`}
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className={`inline-flex rounded-2xl border px-4 py-2 text-sm ${isDark ? 'border-white/10 bg-black/10 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+            <div
+              className={`inline-flex rounded-2xl border px-4 py-2 text-sm ${
+                isDark
+                  ? 'border-white/10 bg-black/10 text-slate-300'
+                  : 'border-slate-200 bg-slate-50 text-slate-600'
+              }`}
+            >
               {text.questionOf} {currentIndex + 1} / {questions.length}
             </div>
           </div>
@@ -1771,20 +2178,38 @@ function QuestionMarathonLayout({
             </div>
           </div>
 
-          <div className={`mt-6 rounded-3xl border p-6 ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
-            <h2 className="text-2xl font-semibold leading-9">{currentQuestion.text}</h2>
+          <div
+            className={`mt-6 rounded-3xl border p-6 ${
+              isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+            }`}
+          >
+            <h2 className="text-2xl font-semibold leading-9">
+              {currentQuestion.text}
+            </h2>
 
             <button
               type="button"
               onClick={onToggleAnswer}
-              className={`mt-6 inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+              className={`mt-6 inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                isDark
+                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                  : 'border-slate-300 bg-white hover:bg-slate-50'
+              }`}
             >
-              <span className={`transition ${isAnswerOpen ? 'rotate-180' : ''}`}>⌄</span>
+              <span className={`transition ${isAnswerOpen ? 'rotate-180' : ''}`}>
+                ⌄
+              </span>
               {isAnswerOpen ? text.hideAnswer : text.revealAnswer}
             </button>
 
             {isAnswerOpen && (
-              <div className={`mt-6 rounded-2xl border p-5 leading-7 ${isDark ? 'border-white/10 bg-slate-900/70 text-slate-100' : 'border-slate-200 bg-white text-slate-700'}`}>
+              <div
+                className={`mt-6 rounded-2xl border p-5 leading-7 ${
+                  isDark
+                    ? 'border-white/10 bg-slate-900/70 text-slate-100'
+                    : 'border-slate-200 bg-white text-slate-700'
+                }`}
+              >
                 {currentQuestion.hasAnswer ? (
                   <FormattedAnswer text={currentQuestion.answer} />
                 ) : (
@@ -1799,7 +2224,11 @@ function QuestionMarathonLayout({
               type="button"
               onClick={onPrev}
               disabled={currentIndex === 0}
-              className={`rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${isDark ? 'bg-white text-slate-950 hover:bg-slate-100' : 'bg-slate-950 text-white hover:bg-slate-800'}`}
+              className={`rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                isDark
+                  ? 'bg-white text-slate-950 hover:bg-slate-100'
+                  : 'bg-slate-950 text-white hover:bg-slate-800'
+              }`}
             >
               {text.previous}
             </button>
@@ -1808,7 +2237,11 @@ function QuestionMarathonLayout({
               type="button"
               onClick={onNext}
               disabled={currentIndex >= questions.length - 1}
-              className={`rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${isDark ? 'bg-white text-slate-950 hover:bg-slate-100' : 'bg-slate-950 text-white hover:bg-slate-800'}`}
+              className={`rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                isDark
+                  ? 'bg-white text-slate-950 hover:bg-slate-100'
+                  : 'bg-slate-950 text-white hover:bg-slate-800'
+              }`}
             >
               {text.next}
             </button>
@@ -1849,8 +2282,6 @@ function FormattedAnswer({ text }: FormattedAnswerProps) {
     </div>
   )
 }
-
-
 
 type SiteHeaderProps = {
   interfaceLanguage: Language
@@ -1894,9 +2325,17 @@ function SiteHeader({
 
   return (
     <>
-      <header className={`grid grid-cols-1 items-center gap-4 rounded-3xl border px-5 py-4 sm:grid-cols-[1fr_auto_1fr] ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+      <header
+        className={`grid grid-cols-1 items-center gap-4 rounded-3xl border px-5 py-4 sm:grid-cols-[1fr_auto_1fr] ${
+          isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+        }`}
+      >
         <div className="flex items-center justify-center sm:justify-start">
-          <span className={`rounded-full px-3 py-1 text-xs sm:text-sm ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+          <span
+            className={`rounded-full px-3 py-1 text-xs sm:text-sm ${
+              isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
             {text.madeByLabel} Andrey Zakharov
           </span>
         </div>
@@ -1913,7 +2352,11 @@ function SiteHeader({
 
         <div className="flex items-center justify-center gap-3 sm:justify-end">
           {onInterfaceLanguageChange && (
-            <div className={`inline-flex rounded-2xl border p-1 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+            <div
+              className={`inline-flex rounded-2xl border p-1 ${
+                isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => onInterfaceLanguageChange('ru')}
@@ -1950,12 +2393,25 @@ function SiteHeader({
           <button
             type="button"
             onClick={onToggleTheme}
-            className={`rounded-2xl border px-3 py-2 transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
+            className={`rounded-2xl border px-3 py-2 transition ${
+              isDark
+                ? 'border-white/10 bg-white/5 text-slate-200'
+                : 'border-slate-200 bg-slate-50 text-slate-700'
+            }`}
             aria-label={theme === 'dark' ? text.themeLight : text.themeDark}
             title={theme === 'dark' ? text.themeLight : text.themeDark}
           >
-            <span className={`theme-toggle-track border ${isDark ? 'border-white/10 bg-slate-800' : 'border-slate-200 bg-slate-200'}`} data-theme={theme}>
-              <span className={`theme-toggle-thumb ${isDark ? 'bg-white' : 'bg-slate-950'}`} />
+            <span
+              className={`theme-toggle-track border ${
+                isDark ? 'border-white/10 bg-slate-800' : 'border-slate-200 bg-slate-200'
+              }`}
+              data-theme={theme}
+            >
+              <span
+                className={`theme-toggle-thumb ${
+                  isDark ? 'bg-white' : 'bg-slate-950'
+                }`}
+              />
             </span>
           </button>
         </div>
@@ -1979,19 +2435,19 @@ function SiteHeader({
           >
             <div
               className={`inline-flex rounded-2xl px-3 py-1 text-xs font-semibold ${
-                isDark
-                  ? 'bg-white/10 text-slate-200'
-                  : 'bg-slate-100 text-slate-700'
+                isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
               }`}
             >
               {text.siteTitle}
             </div>
 
-            <h3 className="mt-4 text-2xl font-semibold">
-              {text.confirmLeaveTitle}
-            </h3>
+            <h3 className="mt-4 text-2xl font-semibold">{text.confirmLeaveTitle}</h3>
 
-            <p className={`mt-4 leading-7 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            <p
+              className={`mt-4 leading-7 ${
+                isDark ? 'text-slate-300' : 'text-slate-600'
+              }`}
+            >
               {text.confirmLeaveText}
             </p>
 
@@ -2050,11 +2506,19 @@ function LanguageChoiceCard({
     <button
       type="button"
       onClick={onClick}
-      className={`cursor-pointer rounded-3xl border p-5 text-left transition hover:translate-y-[-2px] ${isDark ? 'border-white/10 bg-black/10 text-white hover:bg-white/10' : 'border-slate-200 bg-slate-50 text-slate-900 hover:bg-white'}`}
+      className={`cursor-pointer rounded-3xl border p-5 text-left transition hover:translate-y-[-2px] ${
+        isDark
+          ? 'border-white/10 bg-black/10 text-white hover:bg-white/10'
+          : 'border-slate-200 bg-slate-50 text-slate-900 hover:bg-white'
+      }`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className={`text-xs uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <div
+            className={`text-xs uppercase tracking-[0.24em] ${
+              isDark ? 'text-slate-400' : 'text-slate-500'
+            }`}
+          >
             {languageCode}
           </div>
           <h3 className="mt-2 text-2xl font-semibold">{title}</h3>
@@ -2080,7 +2544,11 @@ function MiniStat({ label, value, theme }: MiniStatProps) {
   const isDark = theme === 'dark'
 
   return (
-    <div className={`rounded-2xl p-3 ${isDark ? 'bg-white/5 text-slate-200' : 'bg-white text-slate-900'}`}>
+    <div
+      className={`rounded-2xl p-3 ${
+        isDark ? 'bg-white/5 text-slate-200' : 'bg-white text-slate-900'
+      }`}
+    >
       <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
         {label}
       </div>
@@ -2114,17 +2582,29 @@ function MenuCard({
 
   if (disabled) {
     return (
-      <div className={`relative overflow-hidden rounded-3xl border p-6 shadow-sm ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+      <div
+        className={`relative overflow-hidden rounded-3xl border p-6 shadow-sm ${
+          isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+        }`}
+      >
         <div className="pointer-events-none absolute inset-0 z-10 bg-slate-950/45 backdrop-blur-[1px]" />
 
         <div className="absolute left-4 top-4 z-20">
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDark ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'}`}>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              isDark ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'
+            }`}
+          >
             {disabledLabel}
           </span>
         </div>
 
         <div className="absolute inset-0 z-20 flex items-center justify-center p-6">
-          <div className={`rounded-2xl px-4 py-3 text-center text-sm font-medium shadow-lg ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}`}>
+          <div
+            className={`rounded-2xl px-4 py-3 text-center text-sm font-medium shadow-lg ${
+              isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'
+            }`}
+          >
             {disabledOverlayText}
           </div>
         </div>
@@ -2149,7 +2629,9 @@ function MenuCard({
   return (
     <Link
       to={to}
-      className={`group cursor-pointer rounded-3xl border p-6 shadow-sm transition hover:translate-y-[-2px] hover:shadow-lg ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}
+      className={`group cursor-pointer rounded-3xl border p-6 shadow-sm transition hover:translate-y-[-2px] hover:shadow-lg ${
+        isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+      }`}
     >
       <div className="flex h-full flex-col justify-between gap-6">
         <div>
