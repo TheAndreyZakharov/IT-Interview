@@ -19,6 +19,20 @@ type ContentIndex = {
       other: number
     }
   }
+  contentStats: {
+    byLanguage: {
+      RU: {
+        questions: number
+        answers: number
+        headings: number
+      }
+      EN: {
+        questions: number
+        answers: number
+        headings: number
+      }
+    }
+  }
   files: string[]
 }
 
@@ -36,12 +50,9 @@ type Dictionary = {
   languageEn: string
   chooseLanguageCardHint: string
   updatedAt: string
-  totalFiles: string
-  ruFiles: string
-  enFiles: string
-  questionsOnly: string
-  questionsWithAnswers: string
-  tableAndComplete: string
+  totalQuestions: string
+  totalAnswers: string
+  totalHeadings: string
   selectedLanguage: string
   unavailableBadge: string
   unavailableAnswersMode: string
@@ -64,7 +75,18 @@ type Dictionary = {
   comingSoon: string
 }
 
-const EMPTY_FILES: string[] = []
+type LanguageStats = {
+  questions: number
+  answers: number
+  headings: number
+}
+
+
+const EMPTY_LANGUAGE_STATS: LanguageStats = {
+  questions: 0,
+  answers: 0,
+  headings: 0,
+}
 
 const TEXT: Record<Language, Dictionary> = {
   ru: {
@@ -81,12 +103,9 @@ const TEXT: Record<Language, Dictionary> = {
     chooseLanguageCardHint:
       'После нажатия на карточку выбранный язык сохранится и будет использоваться на следующих страницах.',
     updatedAt: 'Последнее обновление базы',
-    totalFiles: 'Всего markdown-файлов',
-    ruFiles: 'Файлы RU',
-    enFiles: 'Файлы EN',
-    questionsOnly: 'Файлы только с вопросами',
-    questionsWithAnswers: 'Файлы с вопросами и ответами',
-    tableAndComplete: 'Оглавления и полные банки',
+    totalQuestions: 'Количество вопросов',
+    totalAnswers: 'Количество ответов',
+    totalHeadings: 'Количество тем и подтем',
     selectedLanguage: 'Выбранный язык базы',
     unavailableBadge: 'Недоступно',
     unavailableAnswersMode: 'Для английской базы этот режим пока недоступен',
@@ -140,12 +159,9 @@ const TEXT: Record<Language, Dictionary> = {
     chooseLanguageCardHint:
       'After clicking a card, the selected language will be saved and used on the next pages.',
     updatedAt: 'Question bank last updated',
-    totalFiles: 'Total markdown files',
-    ruFiles: 'RU files',
-    enFiles: 'EN files',
-    questionsOnly: 'Question-only files',
-    questionsWithAnswers: 'Question and answer files',
-    tableAndComplete: 'Tables of contents and complete banks',
+    totalQuestions: 'Question count',
+    totalAnswers: 'Answer count',
+    totalHeadings: 'Topics and subtopics',
     selectedLanguage: 'Selected question bank language',
     unavailableBadge: 'Unavailable',
     unavailableAnswersMode: 'This mode is not available for the English bank yet',
@@ -213,42 +229,14 @@ function formatDate(isoDate: string, language: Language) {
   })
 }
 
-function getStatsForBankLanguage(data: ContentIndex | null, files: string[], bankLanguage: Language) {
+function getStatsForBankLanguage(data: ContentIndex | null, bankLanguage: Language): LanguageStats {
   if (!data) {
-    return {
-      total: 0,
-      questionsOnly: 0,
-      questionsWithAnswers: 0,
-      tableAndComplete: 0,
-    }
+    return EMPTY_LANGUAGE_STATS
   }
 
-  const langPrefix = bankLanguage === 'ru' ? 'RU/' : 'EN/'
-
-  let questionsOnly = 0
-  let questionsWithAnswers = 0
-  let tableAndComplete = 0
-
-  for (const file of files) {
-    if (!file.startsWith(langPrefix)) {
-      continue
-    }
-
-    if (file.includes('/Questions_By_Topic_')) {
-      questionsOnly += 1
-    } else if (file.includes('/Questions_with_AI_Answers_By_Topic_')) {
-      questionsWithAnswers += 1
-    } else if (file.includes('Table_of_Contents') || file.includes('Complete_Question_Bank')) {
-      tableAndComplete += 1
-    }
-  }
-
-  return {
-    total: bankLanguage === 'ru' ? data.stats.byLanguage.RU : data.stats.byLanguage.EN,
-    questionsOnly,
-    questionsWithAnswers,
-    tableAndComplete,
-  }
+  return bankLanguage === 'ru'
+    ? data.contentStats.byLanguage.RU
+    : data.contentStats.byLanguage.EN
 }
 
 type SharedPageProps = {
@@ -321,10 +309,9 @@ function App() {
   }, [])
 
   const text = TEXT[interfaceLanguage]
-  const files = useMemo(() => data?.files ?? EMPTY_FILES, [data])
 
-  const ruStats = useMemo(() => getStatsForBankLanguage(data, files, 'ru'), [data, files])
-  const enStats = useMemo(() => getStatsForBankLanguage(data, files, 'en'), [data, files])
+  const ruStats = useMemo(() => getStatsForBankLanguage(data, 'ru'), [data])
+  const enStats = useMemo(() => getStatsForBankLanguage(data, 'en'), [data])
 
   const sharedProps: SharedPageProps = {
     interfaceLanguage,
@@ -408,18 +395,8 @@ function App() {
 
 type HomePageProps = SharedPageProps & {
   data: ContentIndex | null
-  ruStats: {
-    total: number
-    questionsOnly: number
-    questionsWithAnswers: number
-    tableAndComplete: number
-  }
-  enStats: {
-    total: number
-    questionsOnly: number
-    questionsWithAnswers: number
-    tableAndComplete: number
-  }
+  ruStats: LanguageStats
+  enStats: LanguageStats
   onInterfaceLanguageChange: (language: Language) => void
   onSelectLanguage: (language: Language) => void
 }
@@ -864,12 +841,7 @@ function SiteHeader({
 type LanguageChoiceCardProps = {
   title: string
   languageCode: 'RU' | 'EN'
-  stats: {
-    total: number
-    questionsOnly: number
-    questionsWithAnswers: number
-    tableAndComplete: number
-  }
+  stats: LanguageStats
   text: Dictionary
   theme: ThemeMode
   onClick: () => void
@@ -906,22 +878,12 @@ function LanguageChoiceCard({
           </div>
           <h3 className="mt-2 text-2xl font-semibold">{title}</h3>
         </div>
-
-        <span
-          className={`rounded-full px-3 py-1 text-xs ${
-            isDark
-              ? 'bg-white/10 text-slate-300'
-              : 'bg-white text-slate-600'
-          }`}
-        >
-          {text.totalFiles}: {stats.total}
-        </span>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <MiniStat label={text.questionsOnly} value={stats.questionsOnly} theme={theme} />
-        <MiniStat label={text.questionsWithAnswers} value={stats.questionsWithAnswers} theme={theme} />
-        <MiniStat label={text.tableAndComplete} value={stats.tableAndComplete} theme={theme} />
+        <MiniStat label={text.totalQuestions} value={stats.questions} theme={theme} />
+        <MiniStat label={text.totalAnswers} value={stats.answers} theme={theme} />
+        <MiniStat label={text.totalHeadings} value={stats.headings} theme={theme} />
       </div>
     </button>
   )

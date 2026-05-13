@@ -79,6 +79,77 @@ function classifyFile(relativePath) {
   return { lang, type }
 }
 
+function readFileIfExists(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return ''
+  }
+
+  return fs.readFileSync(filePath, 'utf8')
+}
+
+function countQuestions(markdown) {
+  return markdown
+    .split('\n')
+    .filter((line) => /^\s*-\s+/.test(line))
+    .length
+}
+
+function countHeadings(markdown) {
+  return markdown
+    .split('\n')
+    .filter((line) => /^\s*#{2,4}\s+/.test(line))
+    .length
+}
+
+function countAnswersFromAnswerFiles(rootDir, languageDir) {
+  const answersDirName =
+    languageDir === 'RU'
+      ? 'Questions_with_AI_Answers_By_Topic_RU'
+      : 'Questions_with_AI_Answers_By_Topic_EN'
+
+  const answersDir = path.join(rootDir, languageDir, answersDirName)
+
+  if (!fs.existsSync(answersDir)) {
+    return 0
+  }
+
+  const files = collectMarkdownFiles(answersDir, rootDir)
+
+  let totalAnswers = 0
+
+  for (const relativePath of files) {
+    const content = readFileIfExists(path.join(rootDir, relativePath))
+    totalAnswers += content
+      .split('\n')
+      .filter((line) => /^\s*-\s+\*\*.+\*\*\s*$/.test(line))
+      .length
+  }
+
+  return totalAnswers
+}
+
+function buildLanguageContentStats(rootDir, languageDir) {
+  const tocFileName =
+    languageDir === 'RU' ? 'Table_of_Contents_RU.md' : 'Table_of_Contents_EN.md'
+
+  const completeBankFileName =
+    languageDir === 'RU'
+      ? 'Complete_Question_Bank_RU.md'
+      : 'Complete_Question_Bank_EN.md'
+
+  const tocPath = path.join(rootDir, languageDir, tocFileName)
+  const completeBankPath = path.join(rootDir, languageDir, completeBankFileName)
+
+  const tocContent = readFileIfExists(tocPath)
+  const completeBankContent = readFileIfExists(completeBankPath)
+
+  return {
+    questions: countQuestions(completeBankContent),
+    answers: countAnswersFromAnswerFiles(rootDir, languageDir),
+    headings: countHeadings(tocContent),
+  }
+}
+
 removeDir(contentDir)
 ensureDir(contentDir)
 ensureDir(publicDir)
@@ -120,12 +191,20 @@ for (const file of markdownFiles) {
   stats.byType[meta.type] += 1
 }
 
+const contentStats = {
+  byLanguage: {
+    RU: buildLanguageContentStats(sourceDir, 'RU'),
+    EN: buildLanguageContentStats(sourceDir, 'EN'),
+  },
+}
+
 fs.writeFileSync(
   indexFile,
   JSON.stringify(
     {
       generatedAt: new Date().toISOString(),
       stats,
+      contentStats,
       files: markdownFiles,
     },
     null,
@@ -135,3 +214,4 @@ fs.writeFileSync(
 
 console.log(`Collected markdown files: ${markdownFiles.length}`)
 console.log(JSON.stringify(stats, null, 2))
+console.log(JSON.stringify(contentStats, null, 2))
