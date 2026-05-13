@@ -45,7 +45,6 @@ type Dictionary = {
   selectedLanguage: string
   unavailableBadge: string
   unavailableAnswersMode: string
-  infoTooltip: string
   themeLight: string
   themeDark: string
   menuTitle: string
@@ -91,7 +90,6 @@ const TEXT: Record<Language, Dictionary> = {
     selectedLanguage: 'Выбранный язык базы',
     unavailableBadge: 'Недоступно',
     unavailableAnswersMode: 'Для английской базы этот режим пока недоступен',
-    infoTooltip: 'Скоро появится',
     themeLight: 'Светлая',
     themeDark: 'Тёмная',
     menuTitle: 'Выберите режим',
@@ -151,7 +149,6 @@ const TEXT: Record<Language, Dictionary> = {
     selectedLanguage: 'Selected question bank language',
     unavailableBadge: 'Unavailable',
     unavailableAnswersMode: 'This mode is not available for the English bank yet',
-    infoTooltip: 'Coming soon',
     themeLight: 'Light',
     themeDark: 'Dark',
     menuTitle: 'Choose a mode',
@@ -635,7 +632,6 @@ function MenuPage({
             description={text.menuCards.allMarathon.text}
             cta={text.menuCards.allMarathon.cta}
             to="/marathon/all"
-            infoTooltip={text.infoTooltip}
           />
           <MenuCard
             theme={theme}
@@ -643,7 +639,6 @@ function MenuPage({
             description={text.menuCards.customMarathon.text}
             cta={text.menuCards.customMarathon.cta}
             to="/marathon/custom"
-            infoTooltip={text.infoTooltip}
           />
           <MenuCard
             theme={theme}
@@ -651,7 +646,6 @@ function MenuPage({
             description={text.menuCards.questionsOverview.text}
             cta={text.menuCards.questionsOverview.cta}
             to="/overview/questions"
-            infoTooltip={text.infoTooltip}
           />
           <MenuCard
             theme={theme}
@@ -662,7 +656,6 @@ function MenuPage({
             disabled={isAnswersModeUnavailable}
             disabledLabel={text.unavailableBadge}
             disabledOverlayText={text.unavailableAnswersMode}
-            infoTooltip={text.infoTooltip}
           />
         </div>
       </div>
@@ -896,7 +889,7 @@ function LanguageChoiceCard({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-3xl border p-5 text-left transition hover:translate-y-[-2px] ${
+      className={`cursor-pointer rounded-3xl border p-5 text-left transition hover:translate-y-[-2px] ${
         isDark
           ? 'border-white/10 bg-black/10 text-white hover:bg-white/10'
           : 'border-slate-200 bg-slate-50 text-slate-900 hover:bg-white'
@@ -968,7 +961,6 @@ type MenuCardProps = {
   disabled?: boolean
   disabledLabel?: string
   disabledOverlayText?: string
-  infoTooltip: string
 }
 
 function MenuCard({
@@ -980,7 +972,6 @@ function MenuCard({
   disabled = false,
   disabledLabel,
   disabledOverlayText,
-  infoTooltip,
 }: MenuCardProps) {
   const isDark = theme === 'dark'
 
@@ -993,8 +984,6 @@ function MenuCard({
             : 'border-slate-200 bg-white'
         }`}
       >
-        <InfoTooltip theme={theme} text={infoTooltip} />
-
         <div className="pointer-events-none absolute inset-0 z-10 bg-slate-950/45 backdrop-blur-[1px]" />
 
         <div className="absolute left-4 top-4 z-20">
@@ -1041,14 +1030,12 @@ function MenuCard({
   return (
     <Link
       to={to}
-      className={`group relative rounded-3xl border p-6 shadow-sm transition hover:translate-y-[-2px] hover:shadow-lg ${
+      className={`group cursor-pointer rounded-3xl border p-6 shadow-sm transition hover:translate-y-[-2px] hover:shadow-lg ${
         isDark
           ? 'border-white/10 bg-white/5'
           : 'border-slate-200 bg-white'
       }`}
     >
-      <InfoTooltip theme={theme} text={infoTooltip} />
-
       <div className="flex h-full flex-col justify-between gap-6">
         <div>
           <h2 className="text-2xl font-semibold">{title}</h2>
@@ -1063,46 +1050,6 @@ function MenuCard({
         </div>
       </div>
     </Link>
-  )
-}
-
-type InfoTooltipProps = {
-  theme: ThemeMode
-  text: string
-}
-
-function InfoTooltip({ theme, text }: InfoTooltipProps) {
-  const isDark = theme === 'dark'
-
-  return (
-    <div className="absolute right-4 top-4 z-30">
-      <div className="group/info relative">
-        <button
-          type="button"
-          tabIndex={0}
-          onClick={(event) => event.preventDefault()}
-          className={`flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold transition ${
-            isDark
-              ? 'border-white/15 bg-slate-900/85 text-white'
-              : 'border-slate-300 bg-white/95 text-slate-700'
-          }`}
-          aria-label={text}
-          title={text}
-        >
-          i
-        </button>
-
-        <div
-          className={`pointer-events-none absolute right-0 top-10 w-44 rounded-xl px-3 py-2 text-xs leading-5 opacity-0 shadow-lg transition duration-200 group-hover/info:opacity-100 group-focus-within/info:opacity-100 ${
-            isDark
-              ? 'bg-slate-900 text-slate-100'
-              : 'bg-slate-950 text-white'
-          }`}
-        >
-          {text}
-        </div>
-      </div>
-    </div>
   )
 }
 
