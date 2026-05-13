@@ -102,6 +102,7 @@ type Dictionary = {
   menuTitle: string
   menuSubtitle: string
   backHome: string
+  back: string
   modeLabel: string
   placeholderSection: string
   backToModes: string
@@ -113,6 +114,7 @@ type Dictionary = {
   questionOf: string
   topic: string
   subtopic: string
+  subtopics: string
   randomModeHint: string
   chooseTopicsTitle: string
   chooseTopicsHint: string
@@ -123,6 +125,12 @@ type Dictionary = {
   nothingSelected: string
   noQuestionsForSelection: string
   closeSelection: string
+  shuffleAgain: string
+  leaveMarathonConfirm: string
+  confirmLeaveTitle: string
+  confirmLeaveText: string
+  confirmLeaveStay: string
+  confirmLeaveGo: string
   menuCards: {
     allMarathon: { title: string; text: string; cta: string }
     customMarathon: { title: string; text: string; cta: string }
@@ -178,6 +186,7 @@ const TEXT: Record<Language, Dictionary> = {
     menuTitle: 'Выберите режим',
     menuSubtitle: 'Ниже доступны основные сценарии работы с базой.',
     backHome: 'На главный экран',
+    back: 'Назад',
     modeLabel: 'Режимы работы',
     placeholderSection: 'Раздел',
     backToModes: 'Назад к выбору режима',
@@ -189,6 +198,7 @@ const TEXT: Record<Language, Dictionary> = {
     questionOf: 'Вопрос',
     topic: 'Тема',
     subtopic: 'Подтема',
+    subtopics: 'Подтемы',
     randomModeHint: 'Вопросы перемешаны в случайном порядке.',
     chooseTopicsTitle: 'Выберите темы и подтемы',
     chooseTopicsHint:
@@ -200,6 +210,14 @@ const TEXT: Record<Language, Dictionary> = {
     nothingSelected: 'Сначала выберите хотя бы один пункт.',
     noQuestionsForSelection: 'По текущему выбору вопросы не найдены.',
     closeSelection: 'Закрыть выбор',
+    shuffleAgain: 'Перемешать заново',
+    leaveMarathonConfirm:
+      'Вы сейчас находитесь в марафоне. Если перейти на главный экран, текущий прогресс на этой странице сбросится. Перейти?',
+    confirmLeaveTitle: 'Выйти на главный экран?',
+    confirmLeaveText:
+      'Вы сейчас находитесь в марафоне. Если перейти на главный экран, текущий прогресс на этой странице сбросится.',
+    confirmLeaveStay: 'Остаться',
+    confirmLeaveGo: 'Перейти',
     menuCards: {
       allMarathon: {
         title: 'Марафон по всем вопросам',
@@ -252,6 +270,7 @@ const TEXT: Record<Language, Dictionary> = {
     menuTitle: 'Choose a mode',
     menuSubtitle: 'Below are the main ways to work with the question bank.',
     backHome: 'Back to home',
+    back: 'Back',
     modeLabel: 'Modes',
     placeholderSection: 'Section',
     backToModes: 'Back to mode selection',
@@ -263,6 +282,7 @@ const TEXT: Record<Language, Dictionary> = {
     questionOf: 'Question',
     topic: 'Topic',
     subtopic: 'Subtopic',
+    subtopics: 'Subtopics',
     randomModeHint: 'Questions are shuffled randomly.',
     chooseTopicsTitle: 'Choose topics and subtopics',
     chooseTopicsHint:
@@ -274,6 +294,14 @@ const TEXT: Record<Language, Dictionary> = {
     nothingSelected: 'Select at least one item first.',
     noQuestionsForSelection: 'No questions found for the current selection.',
     closeSelection: 'Close selection',
+    shuffleAgain: 'Shuffle again',
+    leaveMarathonConfirm:
+      'You are currently in a marathon. If you go to the home page, the current progress on this page will be reset. Continue?',
+    confirmLeaveTitle: 'Go to home page?',
+    confirmLeaveText:
+      'You are currently in a marathon. If you go to the home page, the current progress on this page will be reset.',
+    confirmLeaveStay: 'Stay',
+    confirmLeaveGo: 'Go',
     menuCards: {
       allMarathon: {
         title: 'Marathon for all questions',
@@ -360,6 +388,31 @@ function shuffleArray<T>(items: T[]) {
   }
 
   return result
+}
+
+function getQuestionSubtopicTrail(
+  question: ParsedQuestion,
+  tocFlat: TocFlatNode[]
+) {
+  const tocMap = new Map(tocFlat.map((item) => [item.id, item]))
+  const currentNode = tocMap.get(question.subtopicId)
+
+  if (!currentNode) {
+    return question.subtopicTitle ? [question.subtopicTitle] : []
+  }
+
+  const trailIds = [...currentNode.parentIds, currentNode.id]
+  const titles = trailIds
+    .map((id) => tocMap.get(id))
+    .filter((node): node is TocFlatNode => Boolean(node))
+    .filter((node) => node.level >= 3)
+    .map((node) => node.title)
+
+  return titles.length > 0
+    ? titles
+    : question.subtopicTitle
+      ? [question.subtopicTitle]
+      : []
 }
 
 type SharedPageProps = {
@@ -782,6 +835,7 @@ function AllMarathonPage({
           title={text.menuCards.allMarathon.title}
           subtitle={text.randomModeHint}
           questions={questions}
+          tocFlat={content.tocFlat}
           currentIndex={currentIndex}
           currentQuestion={currentQuestion}
           isAnswerOpen={isAnswerOpen}
@@ -804,7 +858,7 @@ function AllMarathonPage({
               }}
               className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
             >
-              {bankLanguage === 'ru' ? 'Перемешать заново' : 'Shuffle again'}
+              {text.shuffleAgain}
             </button>
           }
         />
@@ -864,7 +918,9 @@ function CustomMarathonPage({
     }
 
     const filtered = content.questions.filter((question) =>
-      question.headingIds.some((id) => selectedSet.has(id))
+      question.headingIds.some((id) => selectedSet.has(id)) ||
+      selectedSet.has(question.topicId) ||
+      selectedSet.has(question.subtopicId)
     )
 
     setQuestions(shuffleArray(filtered))
@@ -905,6 +961,7 @@ function CustomMarathonPage({
             title={text.menuCards.customMarathon.title}
             subtitle={`${text.selectedItems}: ${selectedIds.length}`}
             questions={questions}
+            tocFlat={content.tocFlat}
             currentIndex={currentIndex}
             currentQuestion={currentQuestion}
             isAnswerOpen={isAnswerOpen}
@@ -972,6 +1029,12 @@ function TopicSelectorPanel({
           </div>
 
           <div className="flex flex-wrap gap-3">
+            <Link
+              to="/menu"
+              className={`inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+            >
+              {text.backToModes}
+            </Link>
             <button
               type="button"
               onClick={onSelectAll}
@@ -1089,6 +1152,7 @@ type QuestionMarathonLayoutProps = {
   title: string
   subtitle: string
   questions: ParsedQuestion[]
+  tocFlat: TocFlatNode[]
   currentIndex: number
   currentQuestion: ParsedQuestion | null
   isAnswerOpen: boolean
@@ -1104,6 +1168,7 @@ function QuestionMarathonLayout({
   title,
   subtitle,
   questions,
+  tocFlat,
   currentIndex,
   currentQuestion,
   isAnswerOpen,
@@ -1113,6 +1178,7 @@ function QuestionMarathonLayout({
   extraAction,
 }: QuestionMarathonLayoutProps) {
   const isDark = theme === 'dark'
+  const subtopicTrail = currentQuestion ? getQuestionSubtopicTrail(currentQuestion, tocFlat) : []
 
   return (
     <section className="mt-10">
@@ -1149,18 +1215,23 @@ function QuestionMarathonLayout({
             </div>
           </div>
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 space-y-4">
             <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               {text.topic}:{' '}
               <span className={isDark ? 'text-white' : 'text-slate-900'}>
                 {currentQuestion.topicTitle}
               </span>
             </div>
+
             <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              {text.subtopic}:{' '}
-              <span className={isDark ? 'text-white' : 'text-slate-900'}>
-                {currentQuestion.subtopicTitle}
-              </span>
+              {(subtopicTrail.length > 1 ? text.subtopics : text.subtopic)}:
+              <div className="mt-2 space-y-1">
+                {subtopicTrail.map((item) => (
+                  <div key={item} className={isDark ? 'text-white' : 'text-slate-900'}>
+                    {item}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1314,71 +1385,163 @@ function SiteHeader({
   text,
   onInterfaceLanguageChange,
 }: SiteHeaderProps) {
+  const location = useLocation()
+  const navigate = useNavigate()
   const isDark = theme === 'dark'
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+
+  function handleHomeClick() {
+    const isMarathonPage = location.pathname.startsWith('/marathon/')
+
+    if (isMarathonPage) {
+      setIsConfirmOpen(true)
+      return
+    }
+
+    navigate('/')
+  }
+
+  function handleConfirmGoHome() {
+    setIsConfirmOpen(false)
+    navigate('/')
+  }
+
+  function handleCloseConfirm() {
+    setIsConfirmOpen(false)
+  }
 
   return (
-    <header className={`grid grid-cols-1 items-center gap-4 rounded-3xl border px-5 py-4 sm:grid-cols-[1fr_auto_1fr] ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
-      <div className="flex items-center justify-center sm:justify-start">
-        <span className={`rounded-full px-3 py-1 text-xs sm:text-sm ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-          {text.madeByLabel} Andrey Zakharov
-        </span>
-      </div>
-
-      <div className="flex items-center justify-center">
-        <span className="text-xl font-semibold tracking-[0.18em] sm:text-2xl">
-          {text.siteTitle}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-center gap-3 sm:justify-end">
-        {onInterfaceLanguageChange && (
-          <div className={`inline-flex rounded-2xl border p-1 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-            <button
-              type="button"
-              onClick={() => onInterfaceLanguageChange('ru')}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-                interfaceLanguage === 'ru'
-                  ? isDark
-                    ? 'bg-white text-slate-950'
-                    : 'bg-slate-950 text-white'
-                  : isDark
-                    ? 'text-slate-300 hover:text-white'
-                    : 'text-slate-600 hover:text-slate-950'
-              }`}
-            >
-              {text.languageRu}
-            </button>
-            <button
-              type="button"
-              onClick={() => onInterfaceLanguageChange('en')}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-                interfaceLanguage === 'en'
-                  ? isDark
-                    ? 'bg-white text-slate-950'
-                    : 'bg-slate-950 text-white'
-                  : isDark
-                    ? 'text-slate-300 hover:text-white'
-                    : 'text-slate-600 hover:text-slate-950'
-              }`}
-            >
-              {text.languageEn}
-            </button>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={onToggleTheme}
-          className={`rounded-2xl border px-3 py-2 transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
-          aria-label={theme === 'dark' ? text.themeLight : text.themeDark}
-          title={theme === 'dark' ? text.themeLight : text.themeDark}
-        >
-          <span className={`theme-toggle-track border ${isDark ? 'border-white/10 bg-slate-800' : 'border-slate-200 bg-slate-200'}`} data-theme={theme}>
-            <span className={`theme-toggle-thumb ${isDark ? 'bg-white' : 'bg-slate-950'}`} />
+    <>
+      <header className={`grid grid-cols-1 items-center gap-4 rounded-3xl border px-5 py-4 sm:grid-cols-[1fr_auto_1fr] ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+        <div className="flex items-center justify-center sm:justify-start">
+          <span className={`rounded-full px-3 py-1 text-xs sm:text-sm ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+            {text.madeByLabel} Andrey Zakharov
           </span>
-        </button>
-      </div>
-    </header>
+        </div>
+
+        <div className="flex items-center justify-center">
+          <button
+            type="button"
+            onClick={handleHomeClick}
+            className="cursor-pointer text-xl font-semibold tracking-[0.18em] transition hover:opacity-80 sm:text-2xl"
+          >
+            {text.siteTitle}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center gap-3 sm:justify-end">
+          {onInterfaceLanguageChange && (
+            <div className={`inline-flex rounded-2xl border p-1 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+              <button
+                type="button"
+                onClick={() => onInterfaceLanguageChange('ru')}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                  interfaceLanguage === 'ru'
+                    ? isDark
+                      ? 'bg-white text-slate-950'
+                      : 'bg-slate-950 text-white'
+                    : isDark
+                      ? 'text-slate-300 hover:text-white'
+                      : 'text-slate-600 hover:text-slate-950'
+                }`}
+              >
+                {text.languageRu}
+              </button>
+              <button
+                type="button"
+                onClick={() => onInterfaceLanguageChange('en')}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                  interfaceLanguage === 'en'
+                    ? isDark
+                      ? 'bg-white text-slate-950'
+                      : 'bg-slate-950 text-white'
+                    : isDark
+                      ? 'text-slate-300 hover:text-white'
+                      : 'text-slate-600 hover:text-slate-950'
+                }`}
+              >
+                {text.languageEn}
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            className={`rounded-2xl border px-3 py-2 transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
+            aria-label={theme === 'dark' ? text.themeLight : text.themeDark}
+            title={theme === 'dark' ? text.themeLight : text.themeDark}
+          >
+            <span className={`theme-toggle-track border ${isDark ? 'border-white/10 bg-slate-800' : 'border-slate-200 bg-slate-200'}`} data-theme={theme}>
+              <span className={`theme-toggle-thumb ${isDark ? 'bg-white' : 'bg-slate-950'}`} />
+            </span>
+          </button>
+        </div>
+      </header>
+
+      {isConfirmOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+          <button
+            type="button"
+            aria-label="Close confirmation modal"
+            onClick={handleCloseConfirm}
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+          />
+
+          <div
+            className={`relative z-[101] w-full max-w-lg rounded-3xl border p-6 shadow-2xl ${
+              isDark
+                ? 'border-white/10 bg-slate-950 text-white'
+                : 'border-slate-200 bg-white text-slate-900'
+            }`}
+          >
+            <div
+              className={`inline-flex rounded-2xl px-3 py-1 text-xs font-semibold ${
+                isDark
+                  ? 'bg-white/10 text-slate-200'
+                  : 'bg-slate-100 text-slate-700'
+              }`}
+            >
+              {text.siteTitle}
+            </div>
+
+            <h3 className="mt-4 text-2xl font-semibold">
+              {text.confirmLeaveTitle}
+            </h3>
+
+            <p className={`mt-4 leading-7 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              {text.confirmLeaveText}
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleCloseConfirm}
+                className={`rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+                  isDark
+                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {text.confirmLeaveStay}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmGoHome}
+                className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+                  isDark
+                    ? 'bg-white text-slate-950 hover:bg-slate-100'
+                    : 'bg-slate-950 text-white hover:bg-slate-800'
+                }`}
+              >
+                {text.confirmLeaveGo}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
