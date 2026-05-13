@@ -1,5 +1,18 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import {
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom'
 import './App.css'
 
 type ContentIndex = {
@@ -79,6 +92,7 @@ type ContentData = {
 
 type Language = 'ru' | 'en'
 type ThemeMode = 'light' | 'dark'
+type OverviewMode = 'questions' | 'answers'
 
 type Dictionary = {
   siteTitle: string
@@ -107,6 +121,7 @@ type Dictionary = {
   placeholderSection: string
   backToModes: string
   noAnswerYet: string
+  answersSoon: string
   revealAnswer: string
   hideAnswer: string
   previous: string
@@ -131,6 +146,13 @@ type Dictionary = {
   confirmLeaveText: string
   confirmLeaveStay: string
   confirmLeaveGo: string
+  showContents: string
+  hideContents: string
+  contents: string
+  questionsListTitle: string
+  answersListTitle: string
+  stickyContext: string
+  noContentAvailable: string
   menuCards: {
     allMarathon: { title: string; text: string; cta: string }
     customMarathon: { title: string; text: string; cta: string }
@@ -146,6 +168,25 @@ type LanguageStats = {
   questions: number
   answers: number
   headings: number
+}
+
+type OverviewHeadingBlock = {
+  key: string
+  type: 'topic' | 'subtopic'
+  title: string
+  nodeId: string
+  level: number
+  trail: string[]
+}
+
+type OverviewQuestionEntry = {
+  key: string
+  question: ParsedQuestion
+  topicTitle: string
+  subtopicTrail: string[]
+  topicId: string
+  subtopicIds: string[]
+  headings: OverviewHeadingBlock[]
 }
 
 const EMPTY_LANGUAGE_STATS: LanguageStats = {
@@ -191,6 +232,7 @@ const TEXT: Record<Language, Dictionary> = {
     placeholderSection: 'Раздел',
     backToModes: 'Назад к выбору режима',
     noAnswerYet: 'Для этого вопроса ответ пока не добавлен.',
+    answersSoon: 'Ответы скоро появятся.',
     revealAnswer: 'Показать ответ / подсказку / пояснение',
     hideAnswer: 'Скрыть ответ',
     previous: 'Назад',
@@ -218,6 +260,13 @@ const TEXT: Record<Language, Dictionary> = {
       'Вы сейчас находитесь в марафоне. Если перейти на главный экран, текущий прогресс на этой странице сбросится.',
     confirmLeaveStay: 'Остаться',
     confirmLeaveGo: 'Перейти',
+    showContents: 'Показать содержание',
+    hideContents: 'Скрыть содержание',
+    contents: 'Содержание',
+    questionsListTitle: 'Оглавление и вопросы',
+    answersListTitle: 'Оглавление, вопросы и ответы',
+    stickyContext: 'Текущий раздел',
+    noContentAvailable: 'Содержимое пока недоступно.',
     menuCards: {
       allMarathon: {
         title: 'Марафон по всем вопросам',
@@ -231,12 +280,12 @@ const TEXT: Record<Language, Dictionary> = {
       },
       questionsOverview: {
         title: 'Оглавление и вопросы',
-        text: 'Просмотр структуры тем и файлов только с вопросами.',
+        text: 'Слева содержание, справа все вопросы по темам.',
         cta: 'Открыть',
       },
       answersOverview: {
         title: 'Оглавление, вопросы и ответы',
-        text: 'Просмотр структуры тем и файлов с вопросами и ответами.',
+        text: 'Слева содержание, справа вопросы и доступные ответы.',
         cta: 'Открыть',
       },
     },
@@ -275,6 +324,7 @@ const TEXT: Record<Language, Dictionary> = {
     placeholderSection: 'Section',
     backToModes: 'Back to mode selection',
     noAnswerYet: 'There is no answer for this question yet.',
+    answersSoon: 'Answers will appear soon.',
     revealAnswer: 'Show answer / hint / explanation',
     hideAnswer: 'Hide answer',
     previous: 'Previous',
@@ -302,6 +352,13 @@ const TEXT: Record<Language, Dictionary> = {
       'You are currently in a marathon. If you go to the home page, the current progress on this page will be reset.',
     confirmLeaveStay: 'Stay',
     confirmLeaveGo: 'Go',
+    showContents: 'Show contents',
+    hideContents: 'Hide contents',
+    contents: 'Contents',
+    questionsListTitle: 'Contents and questions',
+    answersListTitle: 'Contents, questions, and answers',
+    stickyContext: 'Current section',
+    noContentAvailable: 'Content is not available yet.',
     menuCards: {
       allMarathon: {
         title: 'Marathon for all questions',
@@ -315,12 +372,12 @@ const TEXT: Record<Language, Dictionary> = {
       },
       questionsOverview: {
         title: 'Contents and questions',
-        text: 'Browse the topic structure and question-only files.',
+        text: 'Contents on the left, all questions on the right.',
         cta: 'Open',
       },
       answersOverview: {
         title: 'Contents, questions, and answers',
-        text: 'Browse the topic structure and files with questions and answers.',
+        text: 'Contents on the left, questions and available answers on the right.',
         cta: 'Open',
       },
     },
@@ -390,10 +447,7 @@ function shuffleArray<T>(items: T[]) {
   return result
 }
 
-function getQuestionSubtopicTrail(
-  question: ParsedQuestion,
-  tocFlat: TocFlatNode[]
-) {
+function getQuestionSubtopicTrail(question: ParsedQuestion, tocFlat: TocFlatNode[]) {
   const tocMap = new Map(tocFlat.map((item) => [item.id, item]))
   const currentNode = tocMap.get(question.subtopicId)
 
@@ -413,6 +467,69 @@ function getQuestionSubtopicTrail(
     : question.subtopicTitle
       ? [question.subtopicTitle]
       : []
+}
+
+function buildOverviewEntries(
+  questions: ParsedQuestion[],
+  tocFlat: TocFlatNode[]
+): OverviewQuestionEntry[] {
+  const tocMap = new Map(tocFlat.map((item) => [item.id, item]))
+  const result: OverviewQuestionEntry[] = []
+
+  let previousTopicId = ''
+  let previousSubtopicKey = ''
+
+  for (const question of questions) {
+    const subtopicNodes = question.headingIds
+      .map((id) => tocMap.get(id))
+      .filter((node): node is TocFlatNode => Boolean(node))
+      .filter((node) => node.level >= 3)
+
+    const subtopicTrail = subtopicNodes.map((node) => node.title)
+    const subtopicIds = subtopicNodes.map((node) => node.id)
+    const subtopicKey = subtopicIds.join('::')
+
+    const headings: OverviewHeadingBlock[] = []
+
+    if (question.topicId !== previousTopicId) {
+      headings.push({
+        key: `topic-${question.topicId}`,
+        type: 'topic',
+        title: question.topicTitle,
+        nodeId: question.topicId,
+        level: 2,
+        trail: [],
+      })
+    }
+
+    if (subtopicKey && subtopicKey !== previousSubtopicKey) {
+      subtopicNodes.forEach((node, index) => {
+        headings.push({
+          key: `subtopic-${node.id}`,
+          type: 'subtopic',
+          title: node.title,
+          nodeId: node.id,
+          level: node.level,
+          trail: subtopicTrail.slice(0, index + 1),
+        })
+      })
+    }
+
+    result.push({
+      key: question.id,
+      question,
+      topicTitle: question.topicTitle,
+      subtopicTrail,
+      topicId: question.topicId,
+      subtopicIds,
+      headings,
+    })
+
+    previousTopicId = question.topicId
+    previousSubtopicKey = subtopicKey
+  }
+
+  return result
 }
 
 type SharedPageProps = {
@@ -576,9 +693,11 @@ function App() {
       <Route
         path="/overview/questions"
         element={
-          <PlaceholderPage
+          <OverviewPage
+            key={`overview-questions-${bankLanguage}`}
             {...sharedProps}
-            title={text.menuCards.questionsOverview.title}
+            mode="questions"
+            contentData={contentData}
             onInterfaceLanguageChange={setInterfaceLanguage}
           />
         }
@@ -586,9 +705,11 @@ function App() {
       <Route
         path="/overview/answers"
         element={
-          <PlaceholderPage
+          <OverviewPage
+            key={`overview-answers-${bankLanguage}`}
             {...sharedProps}
-            title={text.menuCards.answersOverview.title}
+            mode="answers"
+            contentData={contentData}
             onInterfaceLanguageChange={setInterfaceLanguage}
           />
         }
@@ -990,6 +1111,421 @@ function CustomMarathonPage({
   )
 }
 
+type OverviewPageProps = SharedPageProps & {
+  mode: OverviewMode
+  contentData: ContentData | null
+  onInterfaceLanguageChange: (language: Language) => void
+}
+
+function OverviewPage({
+  interfaceLanguage,
+  bankLanguage,
+  theme,
+  onToggleTheme,
+  text,
+  mode,
+  contentData,
+  onInterfaceLanguageChange,
+}: OverviewPageProps) {
+  const content = useMemo(() => getContentForBankLanguage(contentData, bankLanguage), [contentData, bankLanguage])
+  const isDark = theme === 'dark'
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const elementRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const [activeHeadingId, setActiveHeadingId] = useState<string>('')
+
+  const entries = useMemo(
+    () => buildOverviewEntries(content.questions, content.tocFlat),
+    [content.questions, content.tocFlat]
+  )
+
+  const title =
+    mode === 'questions'
+      ? text.menuCards.questionsOverview.title
+      : text.menuCards.answersOverview.title
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) {
+      return
+    }
+
+    function handleScroll() {
+      const currentContainer = scrollContainerRef.current
+      if (!currentContainer) {
+        return
+      }
+
+      const headingNodes = Object.entries(elementRefs.current)
+        .map(([id, element]) => ({ id, element }))
+        .filter((item): item is { id: string; element: HTMLDivElement } => Boolean(item.element))
+
+      if (headingNodes.length === 0) {
+        return
+      }
+
+      const scrollTop = currentContainer.scrollTop
+      const current = headingNodes
+        .filter(({ element }) => element.offsetTop <= scrollTop + 120)
+        .sort((a, b) => b.element.offsetTop - a.element.offsetTop)[0]
+
+      if (current && current.id !== activeHeadingId) {
+        setActiveHeadingId(current.id)
+      }
+    }
+
+    handleScroll()
+    container.addEventListener('scroll', handleScroll)
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+    }
+  }, [entries, activeHeadingId])
+
+  function scrollToHeading(id: string) {
+    const container = scrollContainerRef.current
+    const target = elementRefs.current[id]
+
+    if (!container || !target) {
+      return
+    }
+
+    container.scrollTo({
+      top: Math.max(target.offsetTop - 88, 0),
+      behavior: 'smooth',
+    })
+    setActiveHeadingId(id)
+  }
+
+  if (mode === 'answers' && bankLanguage === 'en') {
+    return (
+      <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+        <div className="mx-auto max-w-7xl px-6 py-8">
+          <SiteHeader
+            interfaceLanguage={interfaceLanguage}
+            theme={theme}
+            onToggleTheme={onToggleTheme}
+            text={text}
+            onInterfaceLanguageChange={onInterfaceLanguageChange}
+          />
+
+          <div className="mt-10 flex items-center justify-between gap-4">
+            <div>
+              <p className={`text-sm uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                {text.modeLabel}
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
+            </div>
+
+            <Link
+              to="/menu"
+              className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+                isDark
+                  ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              {text.backToModes}
+            </Link>
+          </div>
+
+          <div className={`mt-10 rounded-3xl border p-8 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+            <div
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                isDark ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'
+              }`}
+            >
+              {text.unavailableBadge}
+            </div>
+
+            <p className={`mt-5 text-lg leading-8 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              {text.unavailableAnswersMode}
+            </p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+      <div className="mx-auto max-w-[1600px] px-6 py-8">
+        <SiteHeader
+          interfaceLanguage={interfaceLanguage}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+          text={text}
+          onInterfaceLanguageChange={onInterfaceLanguageChange}
+        />
+
+        <div className="mt-10 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className={`text-sm uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              {text.modeLabel}
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen((prev) => !prev)}
+              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                isDark
+                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                  : 'border-slate-300 bg-white hover:bg-slate-50'
+              }`}
+            >
+              {isSidebarOpen ? text.hideContents : text.showContents}
+            </button>
+
+            <Link
+              to="/menu"
+              className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+                isDark
+                  ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              {text.backToModes}
+            </Link>
+          </div>
+        </div>
+
+        <div className={`mt-8 flex gap-6 ${isSidebarOpen ? 'xl:flex-row' : 'xl:flex-col'}`}>
+          {isSidebarOpen && (
+            <aside
+              className={`xl:sticky xl:top-6 xl:h-[calc(100vh-4rem)] xl:w-[360px] xl:flex-shrink-0 ${
+                isDark ? '' : ''
+              }`}
+            >
+              <div className={`h-full overflow-hidden rounded-3xl border ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+                <div
+                  className={`sticky top-0 z-20 border-b px-5 py-4 ${
+                    isDark
+                      ? 'border-white/10 bg-slate-950/90'
+                      : 'border-slate-200 bg-white/90'
+                  } backdrop-blur`}
+                >
+                  <div className="text-lg font-semibold">{text.contents}</div>
+                </div>
+
+                <div className="h-[calc(100%-68px)] overflow-y-auto px-4 py-4">
+                  <OverviewTocTree
+                    nodes={content.tocTree}
+                    activeHeadingId={activeHeadingId}
+                    onSelect={scrollToHeading}
+                    theme={theme}
+                  />
+                </div>
+              </div>
+            </aside>
+          )}
+
+          <section className={`${isSidebarOpen ? 'min-w-0 flex-1' : 'mx-auto w-full max-w-5xl'}`}>
+            <div
+              ref={scrollContainerRef}
+              className={`h-[calc(100vh-12rem)] overflow-y-auto rounded-3xl border px-6 py-6 ${
+                isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+              }`}
+            >
+              {entries.length === 0 ? (
+                <div className={`rounded-3xl border p-8 ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
+                  <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
+                    {text.noContentAvailable}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-0">
+                  {entries.map((entry, index) => (
+                    <OverviewQuestionBlock
+                      key={entry.key}
+                      entry={entry}
+                      index={index}
+                      mode={mode}
+                      text={text}
+                      theme={theme}
+                      registerAnchor={(id, element) => {
+                        elementRefs.current[id] = element
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+type OverviewTocTreeProps = {
+  nodes: TocNode[]
+  activeHeadingId: string
+  onSelect: (id: string) => void
+  theme: ThemeMode
+}
+
+function OverviewTocTree({
+  nodes,
+  activeHeadingId,
+  onSelect,
+  theme,
+}: OverviewTocTreeProps) {
+  return (
+    <div className="space-y-2">
+      {nodes.map((node) => (
+        <OverviewTocNode
+          key={node.id}
+          node={node}
+          activeHeadingId={activeHeadingId}
+          onSelect={onSelect}
+          theme={theme}
+        />
+      ))}
+    </div>
+  )
+}
+
+type OverviewTocNodeProps = {
+  node: TocNode
+  activeHeadingId: string
+  onSelect: (id: string) => void
+  theme: ThemeMode
+}
+
+function OverviewTocNode({
+  node,
+  activeHeadingId,
+  onSelect,
+  theme,
+}: OverviewTocNodeProps) {
+  const isDark = theme === 'dark'
+  const isActive = activeHeadingId === node.id
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => onSelect(node.id)}
+        className={`w-full rounded-2xl px-3 py-2 text-left transition ${
+          isActive
+            ? isDark
+              ? 'bg-white text-slate-950'
+              : 'bg-slate-950 text-white'
+            : isDark
+              ? 'text-slate-200 hover:bg-white/10'
+              : 'text-slate-700 hover:bg-slate-100'
+        } ${node.level === 2 ? 'font-semibold' : node.level === 3 ? 'font-medium' : 'text-sm'} ${
+          node.level === 4 ? 'ml-4' : node.level === 3 ? 'ml-2' : ''
+        }`}
+      >
+        {node.title}
+      </button>
+
+      {node.children.length > 0 && (
+        <div className="mt-1 space-y-1">
+          {node.children.map((child) => (
+            <OverviewTocNode
+              key={child.id}
+              node={child}
+              activeHeadingId={activeHeadingId}
+              onSelect={onSelect}
+              theme={theme}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+type OverviewQuestionBlockProps = {
+  entry: OverviewQuestionEntry
+  index: number
+  mode: OverviewMode
+  text: Dictionary
+  theme: ThemeMode
+  registerAnchor: (id: string, element: HTMLDivElement | null) => void
+}
+
+function OverviewQuestionBlock({
+  entry,
+  index,
+  mode,
+  text,
+  theme,
+  registerAnchor,
+}: OverviewQuestionBlockProps) {
+  const isDark = theme === 'dark'
+
+  return (
+    <div>
+      {entry.headings.map((heading, headingIndex) => {
+        const stickyTop =
+          heading.type === 'topic'
+            ? 'top-0 z-30'
+            : heading.level === 3
+              ? 'top-[56px] z-20'
+              : 'top-[104px] z-10'
+
+        const titleClass =
+          heading.type === 'topic'
+            ? 'text-2xl font-semibold'
+            : heading.level === 3
+              ? 'text-lg font-semibold'
+              : 'text-sm font-semibold'
+
+        return (
+          <div
+            key={heading.key}
+            ref={(element) => registerAnchor(heading.nodeId, element)}
+            className={`sticky ${stickyTop} border-b px-4 py-3 backdrop-blur ${
+              isDark
+                ? 'border-white/10 bg-slate-950/92'
+                : 'border-slate-200 bg-white/92'
+            } ${headingIndex > 0 ? 'mt-0' : ''}`}
+          >
+            <div className={titleClass}>{heading.title}</div>
+          </div>
+        )
+      })}
+
+      <div className={`${mode === 'answers' ? 'py-6' : 'py-4'}`}>
+        {mode === 'answers' ? (
+          <div className={`rounded-3xl border p-6 ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
+            <div className={`text-xs uppercase tracking-[0.2em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              {text.questionOf} {index + 1}
+            </div>
+
+            <h3 className="mt-3 text-xl font-semibold leading-8">
+              {entry.question.text}
+            </h3>
+
+            <div className={`my-5 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`} />
+
+            <div className={`leading-7 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+              {entry.question.hasAnswer ? (
+                <FormattedAnswer text={entry.question.answer} />
+              ) : (
+                <p>{text.answersSoon}</p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className={`border-b pb-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+            <div className="flex gap-3">
+              <span className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>•</span>
+              <div className="text-lg leading-8">{entry.question.text}</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 type TopicSelectorPanelProps = {
   theme: ThemeMode
   text: Dictionary
@@ -1314,61 +1850,7 @@ function FormattedAnswer({ text }: FormattedAnswerProps) {
   )
 }
 
-type PlaceholderPageProps = SharedPageProps & {
-  title: string
-  onInterfaceLanguageChange: (language: Language) => void
-}
 
-function PlaceholderPage({
-  interfaceLanguage,
-  theme,
-  onToggleTheme,
-  text,
-  title,
-  onInterfaceLanguageChange,
-}: PlaceholderPageProps) {
-  const isDark = theme === 'dark'
-
-  return (
-    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
-      <div className="mx-auto max-w-7xl px-6 py-8">
-        <SiteHeader
-          interfaceLanguage={interfaceLanguage}
-          theme={theme}
-          onToggleTheme={onToggleTheme}
-          text={text}
-          onInterfaceLanguageChange={onInterfaceLanguageChange}
-        />
-
-        <div className="mt-10 flex items-center justify-between gap-4">
-          <div>
-            <p className={`text-sm uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              {text.placeholderSection}
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
-          </div>
-
-          <Link
-            to="/menu"
-            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
-          >
-            {text.backToModes}
-          </Link>
-        </div>
-
-        <div className={`mt-10 rounded-3xl border p-8 shadow-sm ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
-          <h2 className="text-2xl font-semibold">{title}</h2>
-          <p className={`mt-4 leading-7 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-            {text.placeholderText}
-          </p>
-          <p className={`mt-4 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            {text.comingSoon}
-          </p>
-        </div>
-      </div>
-    </main>
-  )
-}
 
 type SiteHeaderProps = {
   interfaceLanguage: Language
