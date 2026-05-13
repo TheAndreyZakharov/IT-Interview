@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import './App.css'
 
@@ -36,6 +36,47 @@ type ContentIndex = {
   files: string[]
 }
 
+type ParsedQuestion = {
+  id: string
+  text: string
+  answer: string
+  hasAnswer: boolean
+  topicTitle: string
+  subtopicTitle: string
+  topicId: string
+  subtopicId: string
+  headingIds: string[]
+}
+
+type TocNode = {
+  id: string
+  title: string
+  level: number
+  children: TocNode[]
+}
+
+type TocFlatNode = {
+  id: string
+  title: string
+  level: number
+  parentIds: string[]
+  childrenIds: string[]
+}
+
+type LanguageContentData = {
+  tocTree: TocNode[]
+  tocFlat: TocFlatNode[]
+  questions: ParsedQuestion[]
+}
+
+type ContentData = {
+  generatedAt: string
+  byLanguage: {
+    RU: LanguageContentData
+    EN: LanguageContentData
+  }
+}
+
 type Language = 'ru' | 'en'
 type ThemeMode = 'light' | 'dark'
 
@@ -64,6 +105,24 @@ type Dictionary = {
   modeLabel: string
   placeholderSection: string
   backToModes: string
+  noAnswerYet: string
+  revealAnswer: string
+  hideAnswer: string
+  previous: string
+  next: string
+  questionOf: string
+  topic: string
+  subtopic: string
+  randomModeHint: string
+  chooseTopicsTitle: string
+  chooseTopicsHint: string
+  selectAll: string
+  clearAll: string
+  startMarathon: string
+  selectedItems: string
+  nothingSelected: string
+  noQuestionsForSelection: string
+  closeSelection: string
   menuCards: {
     allMarathon: { title: string; text: string; cta: string }
     customMarathon: { title: string; text: string; cta: string }
@@ -81,11 +140,16 @@ type LanguageStats = {
   headings: number
 }
 
-
 const EMPTY_LANGUAGE_STATS: LanguageStats = {
   questions: 0,
   answers: 0,
   headings: 0,
+}
+
+const EMPTY_LANGUAGE_CONTENT: LanguageContentData = {
+  tocTree: [],
+  tocFlat: [],
+  questions: [],
 }
 
 const TEXT: Record<Language, Dictionary> = {
@@ -112,21 +176,39 @@ const TEXT: Record<Language, Dictionary> = {
     themeLight: 'Светлая',
     themeDark: 'Тёмная',
     menuTitle: 'Выберите режим',
-    menuSubtitle:
-      'Ниже доступны основные сценарии работы с базой. Пока это стартовые страницы-заглушки, дальше сюда добавим реальный функционал.',
+    menuSubtitle: 'Ниже доступны основные сценарии работы с базой.',
     backHome: 'На главный экран',
     modeLabel: 'Режимы работы',
     placeholderSection: 'Раздел',
     backToModes: 'Назад к выбору режима',
+    noAnswerYet: 'Для этого вопроса ответ пока не добавлен.',
+    revealAnswer: 'Показать ответ / подсказку / пояснение',
+    hideAnswer: 'Скрыть ответ',
+    previous: 'Назад',
+    next: 'Вперёд',
+    questionOf: 'Вопрос',
+    topic: 'Тема',
+    subtopic: 'Подтема',
+    randomModeHint: 'Вопросы перемешаны в случайном порядке.',
+    chooseTopicsTitle: 'Выберите темы и подтемы',
+    chooseTopicsHint:
+      'Отметьте нужные пункты, затем начните марафон только по выбранным разделам.',
+    selectAll: 'Выбрать всё',
+    clearAll: 'Очистить всё',
+    startMarathon: 'Начать марафон',
+    selectedItems: 'Выбрано пунктов',
+    nothingSelected: 'Сначала выберите хотя бы один пункт.',
+    noQuestionsForSelection: 'По текущему выбору вопросы не найдены.',
+    closeSelection: 'Закрыть выбор',
     menuCards: {
       allMarathon: {
         title: 'Марафон по всем вопросам',
-        text: 'Последовательный режим прохождения всей базы вопросов.',
+        text: 'Случайный проход по всем вопросам выбранной базы.',
         cta: 'Открыть',
       },
       customMarathon: {
         title: 'Марафон по выбранным темам',
-        text: 'Режим, в котором пользователь сможет выбрать конкретные темы.',
+        text: 'Сначала выбираете темы и подтемы, затем проходите карточки только по ним.',
         cta: 'Открыть',
       },
       questionsOverview: {
@@ -168,21 +250,39 @@ const TEXT: Record<Language, Dictionary> = {
     themeLight: 'Light',
     themeDark: 'Dark',
     menuTitle: 'Choose a mode',
-    menuSubtitle:
-      'Below are the main ways to work with the question bank. For now these are placeholder pages, and later we will add the real functionality.',
+    menuSubtitle: 'Below are the main ways to work with the question bank.',
     backHome: 'Back to home',
     modeLabel: 'Modes',
     placeholderSection: 'Section',
     backToModes: 'Back to mode selection',
+    noAnswerYet: 'There is no answer for this question yet.',
+    revealAnswer: 'Show answer / hint / explanation',
+    hideAnswer: 'Hide answer',
+    previous: 'Previous',
+    next: 'Next',
+    questionOf: 'Question',
+    topic: 'Topic',
+    subtopic: 'Subtopic',
+    randomModeHint: 'Questions are shuffled randomly.',
+    chooseTopicsTitle: 'Choose topics and subtopics',
+    chooseTopicsHint:
+      'Select the needed items and start the marathon only for them.',
+    selectAll: 'Select all',
+    clearAll: 'Clear all',
+    startMarathon: 'Start marathon',
+    selectedItems: 'Selected items',
+    nothingSelected: 'Select at least one item first.',
+    noQuestionsForSelection: 'No questions found for the current selection.',
+    closeSelection: 'Close selection',
     menuCards: {
       allMarathon: {
         title: 'Marathon for all questions',
-        text: 'A sequential mode for going through the entire question bank.',
+        text: 'A random run through all questions in the selected bank.',
         cta: 'Open',
       },
       customMarathon: {
         title: 'Marathon by selected topics',
-        text: 'A mode where the user will be able to choose specific topics.',
+        text: 'First choose topics and subtopics, then go through cards only for them.',
         cta: 'Open',
       },
       questionsOverview: {
@@ -239,6 +339,29 @@ function getStatsForBankLanguage(data: ContentIndex | null, bankLanguage: Langua
     : data.contentStats.byLanguage.EN
 }
 
+function getContentForBankLanguage(data: ContentData | null, bankLanguage: Language): LanguageContentData {
+  if (!data) {
+    return EMPTY_LANGUAGE_CONTENT
+  }
+
+  return bankLanguage === 'ru'
+    ? data.byLanguage.RU
+    : data.byLanguage.EN
+}
+
+function shuffleArray<T>(items: T[]) {
+  const result = [...items]
+
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const temp = result[i]
+    result[i] = result[j]
+    result[j] = temp
+  }
+
+  return result
+}
+
 type SharedPageProps = {
   interfaceLanguage: Language
   bankLanguage: Language
@@ -250,6 +373,7 @@ type SharedPageProps = {
 function App() {
   const initialLanguage = detectInitialLanguage()
   const [data, setData] = useState<ContentIndex | null>(null)
+  const [contentData, setContentData] = useState<ContentData | null>(null)
   const [interfaceLanguage, setInterfaceLanguage] = useState<Language>(initialLanguage)
   const [bankLanguage, setBankLanguage] = useState<Language>(initialLanguage)
   const [theme, setTheme] = useState<ThemeMode>(detectSystemTheme())
@@ -308,6 +432,32 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    let isCancelled = false
+
+    fetch(`${import.meta.env.BASE_URL}content-data.json`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load content data: ${res.status}`)
+        }
+        return res.json()
+      })
+      .then((json: ContentData) => {
+        if (!isCancelled) {
+          setContentData(json)
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setContentData(null)
+        }
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
   const text = TEXT[interfaceLanguage]
 
   const ruStats = useMemo(() => getStatsForBankLanguage(data, 'ru'), [data])
@@ -351,9 +501,10 @@ function App() {
       <Route
         path="/marathon/all"
         element={
-          <PlaceholderPage
+          <AllMarathonPage
+            key={`all-${bankLanguage}`}
             {...sharedProps}
-            title={text.menuCards.allMarathon.title}
+            contentData={contentData}
             onInterfaceLanguageChange={setInterfaceLanguage}
           />
         }
@@ -361,9 +512,10 @@ function App() {
       <Route
         path="/marathon/custom"
         element={
-          <PlaceholderPage
+          <CustomMarathonPage
+            key={`custom-${bankLanguage}`}
             {...sharedProps}
-            title={text.menuCards.customMarathon.title}
+            contentData={contentData}
             onInterfaceLanguageChange={setInterfaceLanguage}
           />
         }
@@ -421,11 +573,7 @@ function HomePage({
   }
 
   return (
-    <main
-      className={`page-fade min-h-screen ${
-        isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
-      }`}
-    >
+    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-8">
         <SiteHeader
           interfaceLanguage={interfaceLanguage}
@@ -442,36 +590,18 @@ function HomePage({
                 {text.heroTitle}
               </h1>
 
-              <p
-                className={`mt-6 text-lg leading-8 sm:text-xl ${
-                  isDark ? 'text-slate-300' : 'text-slate-600'
-                }`}
-              >
+              <p className={`mt-6 text-lg leading-8 sm:text-xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {text.heroSubtitle}
               </p>
             </div>
 
-            <div
-              className={`mx-auto mt-10 max-w-4xl rounded-3xl border p-6 ${
-                isDark
-                  ? 'border-white/10 bg-white/5'
-                  : 'border-slate-200 bg-white'
-              }`}
-            >
+            <div className={`mx-auto mt-10 max-w-4xl rounded-3xl border p-6 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
               <div className="text-center">
                 <h2 className="text-xl font-semibold">{text.languageTitle}</h2>
-                <p
-                  className={`mt-2 text-sm leading-6 ${
-                    isDark ? 'text-slate-400' : 'text-slate-500'
-                  }`}
-                >
+                <p className={`mt-2 text-sm leading-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   {text.languageHint}
                 </p>
-                <p
-                  className={`mt-2 text-sm ${
-                    isDark ? 'text-slate-400' : 'text-slate-500'
-                  }`}
-                >
+                <p className={`mt-2 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   {text.chooseLanguageCardHint}
                 </p>
               </div>
@@ -495,18 +625,8 @@ function HomePage({
                 />
               </div>
 
-              <div
-                className={`mt-6 rounded-2xl border p-4 text-center ${
-                  isDark
-                    ? 'border-white/10 bg-black/10'
-                    : 'border-slate-200 bg-slate-50'
-                }`}
-              >
-                <div
-                  className={`text-sm ${
-                    isDark ? 'text-slate-400' : 'text-slate-500'
-                  }`}
-                >
+              <div className={`mt-6 rounded-2xl border p-4 text-center ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
+                <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   {text.updatedAt}
                 </div>
                 <div className="mt-2 text-lg font-semibold">
@@ -542,11 +662,7 @@ function MenuPage({
   }, [location.pathname])
 
   return (
-    <main
-      className={`page-fade min-h-screen ${
-        isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
-      }`}
-    >
+    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
       <div className="mx-auto max-w-7xl px-6 py-8">
         <SiteHeader
           interfaceLanguage={interfaceLanguage}
@@ -559,42 +675,24 @@ function MenuPage({
         <div className="mt-10 flex flex-col gap-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p
-                className={`text-sm uppercase tracking-[0.24em] ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
-                }`}
-              >
+              <p className={`text-sm uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 {text.modeLabel}
               </p>
               <h1 className="mt-2 text-3xl font-semibold">{text.menuTitle}</h1>
-              <p
-                className={`mt-3 max-w-3xl ${
-                  isDark ? 'text-slate-300' : 'text-slate-600'
-                }`}
-              >
+              <p className={`mt-3 max-w-3xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {text.menuSubtitle}
               </p>
             </div>
 
             <Link
               to="/"
-              className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
+              className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
             >
               {text.backHome}
             </Link>
           </div>
 
-          <div
-            className={`inline-flex w-fit items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${
-              isDark
-                ? 'border-white/10 bg-white/5 text-slate-300'
-                : 'border-slate-200 bg-white text-slate-600'
-            }`}
-          >
+          <div className={`inline-flex w-fit items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${isDark ? 'border-white/10 bg-white/5 text-slate-300' : 'border-slate-200 bg-white text-slate-600'}`}>
             <span className="font-medium">{text.selectedLanguage}:</span>
             <span className={isDark ? 'text-white' : 'text-slate-900'}>
               {bankLanguage === 'ru' ? text.languageRu : text.languageEn}
@@ -640,6 +738,511 @@ function MenuPage({
   )
 }
 
+type AllMarathonPageProps = SharedPageProps & {
+  contentData: ContentData | null
+  onInterfaceLanguageChange: (language: Language) => void
+}
+
+function AllMarathonPage({
+  interfaceLanguage,
+  bankLanguage,
+  theme,
+  onToggleTheme,
+  text,
+  contentData,
+  onInterfaceLanguageChange,
+}: AllMarathonPageProps) {
+  const content = useMemo(() => getContentForBankLanguage(contentData, bankLanguage), [contentData, bankLanguage])
+  const [shuffleSeed, setShuffleSeed] = useState(0)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isAnswerOpen, setIsAnswerOpen] = useState(false)
+  const isDark = theme === 'dark'
+
+  const questions = useMemo(() => {
+    void shuffleSeed
+    return shuffleArray(content.questions)
+  }, [content.questions, shuffleSeed])
+
+  const currentQuestion = questions[currentIndex] ?? null
+
+  return (
+    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <SiteHeader
+          interfaceLanguage={interfaceLanguage}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+          text={text}
+          onInterfaceLanguageChange={onInterfaceLanguageChange}
+        />
+
+        <QuestionMarathonLayout
+          theme={theme}
+          text={text}
+          title={text.menuCards.allMarathon.title}
+          subtitle={text.randomModeHint}
+          questions={questions}
+          currentIndex={currentIndex}
+          currentQuestion={currentQuestion}
+          isAnswerOpen={isAnswerOpen}
+          onToggleAnswer={() => setIsAnswerOpen((prev) => !prev)}
+          onPrev={() => {
+            setCurrentIndex((prev) => Math.max(prev - 1, 0))
+            setIsAnswerOpen(false)
+          }}
+          onNext={() => {
+            setCurrentIndex((prev) => Math.min(prev + 1, questions.length - 1))
+            setIsAnswerOpen(false)
+          }}
+          extraAction={
+            <button
+              type="button"
+              onClick={() => {
+                setShuffleSeed((prev) => prev + 1)
+                setCurrentIndex(0)
+                setIsAnswerOpen(false)
+              }}
+              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+            >
+              {bankLanguage === 'ru' ? 'Перемешать заново' : 'Shuffle again'}
+            </button>
+          }
+        />
+      </div>
+    </main>
+  )
+}
+
+type CustomMarathonPageProps = SharedPageProps & {
+  contentData: ContentData | null
+  onInterfaceLanguageChange: (language: Language) => void
+}
+
+function CustomMarathonPage({
+  interfaceLanguage,
+  bankLanguage,
+  theme,
+  onToggleTheme,
+  text,
+  contentData,
+  onInterfaceLanguageChange,
+}: CustomMarathonPageProps) {
+  const content = useMemo(() => getContentForBankLanguage(contentData, bankLanguage), [contentData, bankLanguage])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isSelectorOpen, setIsSelectorOpen] = useState(true)
+  const [questions, setQuestions] = useState<ParsedQuestion[]>([])
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isAnswerOpen, setIsAnswerOpen] = useState(false)
+  const isDark = theme === 'dark'
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+
+  function toggleNode(node: TocFlatNode) {
+    const idsToChange = [node.id, ...node.childrenIds]
+    const shouldSelect = !selectedSet.has(node.id)
+
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+
+      if (shouldSelect) {
+        for (const id of idsToChange) {
+          next.add(id)
+        }
+      } else {
+        for (const id of idsToChange) {
+          next.delete(id)
+        }
+      }
+
+      return [...next]
+    })
+  }
+
+  function startSelectedMarathon() {
+    if (selectedIds.length === 0) {
+      return
+    }
+
+    const filtered = content.questions.filter((question) =>
+      question.headingIds.some((id) => selectedSet.has(id))
+    )
+
+    setQuestions(shuffleArray(filtered))
+    setCurrentIndex(0)
+    setIsAnswerOpen(false)
+    setIsSelectorOpen(false)
+  }
+
+  const currentQuestion = questions[currentIndex] ?? null
+
+  return (
+    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <SiteHeader
+          interfaceLanguage={interfaceLanguage}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+          text={text}
+          onInterfaceLanguageChange={onInterfaceLanguageChange}
+        />
+
+        {isSelectorOpen ? (
+          <TopicSelectorPanel
+            theme={theme}
+            text={text}
+            tocTree={content.tocTree}
+            tocFlat={content.tocFlat}
+            selectedIds={selectedIds}
+            onToggleNode={toggleNode}
+            onSelectAll={() => setSelectedIds(content.tocFlat.map((item) => item.id))}
+            onClearAll={() => setSelectedIds([])}
+            onStart={startSelectedMarathon}
+          />
+        ) : (
+          <QuestionMarathonLayout
+            theme={theme}
+            text={text}
+            title={text.menuCards.customMarathon.title}
+            subtitle={`${text.selectedItems}: ${selectedIds.length}`}
+            questions={questions}
+            currentIndex={currentIndex}
+            currentQuestion={currentQuestion}
+            isAnswerOpen={isAnswerOpen}
+            onToggleAnswer={() => setIsAnswerOpen((prev) => !prev)}
+            onPrev={() => {
+              setCurrentIndex((prev) => Math.max(prev - 1, 0))
+              setIsAnswerOpen(false)
+            }}
+            onNext={() => {
+              setCurrentIndex((prev) => Math.min(prev + 1, questions.length - 1))
+              setIsAnswerOpen(false)
+            }}
+            extraAction={
+              <button
+                type="button"
+                onClick={() => setIsSelectorOpen(true)}
+                className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+              >
+                {text.closeSelection}
+              </button>
+            }
+          />
+        )}
+      </div>
+    </main>
+  )
+}
+
+type TopicSelectorPanelProps = {
+  theme: ThemeMode
+  text: Dictionary
+  tocTree: TocNode[]
+  tocFlat: TocFlatNode[]
+  selectedIds: string[]
+  onToggleNode: (node: TocFlatNode) => void
+  onSelectAll: () => void
+  onClearAll: () => void
+  onStart: () => void
+}
+
+function TopicSelectorPanel({
+  theme,
+  text,
+  tocTree,
+  tocFlat,
+  selectedIds,
+  onToggleNode,
+  onSelectAll,
+  onClearAll,
+  onStart,
+}: TopicSelectorPanelProps) {
+  const isDark = theme === 'dark'
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+  const flatMap = useMemo(() => new Map(tocFlat.map((item) => [item.id, item])), [tocFlat])
+
+  return (
+    <section className="mt-10">
+      <div className={`rounded-3xl border p-6 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold">{text.chooseTopicsTitle}</h1>
+            <p className={`mt-3 max-w-3xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              {text.chooseTopicsHint}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={onSelectAll}
+              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+            >
+              {text.selectAll}
+            </button>
+            <button
+              type="button"
+              onClick={onClearAll}
+              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+            >
+              {text.clearAll}
+            </button>
+            <button
+              type="button"
+              onClick={onStart}
+              className={`rounded-2xl px-5 py-2 text-sm font-semibold transition ${isDark ? 'bg-white text-slate-950 hover:bg-slate-100' : 'bg-slate-950 text-white hover:bg-slate-800'}`}
+            >
+              {text.startMarathon}
+            </button>
+          </div>
+        </div>
+
+        <div className={`mt-6 inline-flex rounded-2xl border px-4 py-2 text-sm ${isDark ? 'border-white/10 bg-black/10 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+          {text.selectedItems}: {selectedIds.length}
+        </div>
+
+        {tocTree.length === 0 ? (
+          <p className={`mt-8 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            {text.noQuestionsForSelection}
+          </p>
+        ) : (
+          <div className="mt-8 space-y-3">
+            {tocTree.map((node) => (
+              <TopicTreeNode
+                key={node.id}
+                node={node}
+                flatMap={flatMap}
+                selectedSet={selectedSet}
+                onToggleNode={onToggleNode}
+                theme={theme}
+              />
+            ))}
+          </div>
+        )}
+
+        {selectedIds.length === 0 && (
+          <p className={`mt-6 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {text.nothingSelected}
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+type TopicTreeNodeProps = {
+  node: TocNode
+  flatMap: Map<string, TocFlatNode>
+  selectedSet: Set<string>
+  onToggleNode: (node: TocFlatNode) => void
+  theme: ThemeMode
+}
+
+function TopicTreeNode({
+  node,
+  flatMap,
+  selectedSet,
+  onToggleNode,
+  theme,
+}: TopicTreeNodeProps) {
+  const isDark = theme === 'dark'
+  const flatNode = flatMap.get(node.id)
+
+  if (!flatNode) {
+    return null
+  }
+
+  return (
+    <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
+      <label className="flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          checked={selectedSet.has(node.id)}
+          onChange={() => onToggleNode(flatNode)}
+          className="mt-1 h-4 w-4"
+        />
+        <span className={`leading-7 ${node.level === 2 ? 'text-lg font-semibold' : node.level === 3 ? 'font-medium' : ''}`}>
+          {node.title}
+        </span>
+      </label>
+
+      {node.children.length > 0 && (
+        <div className="mt-3 space-y-3 pl-6">
+          {node.children.map((child) => (
+            <TopicTreeNode
+              key={child.id}
+              node={child}
+              flatMap={flatMap}
+              selectedSet={selectedSet}
+              onToggleNode={onToggleNode}
+              theme={theme}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+type QuestionMarathonLayoutProps = {
+  theme: ThemeMode
+  text: Dictionary
+  title: string
+  subtitle: string
+  questions: ParsedQuestion[]
+  currentIndex: number
+  currentQuestion: ParsedQuestion | null
+  isAnswerOpen: boolean
+  onToggleAnswer: () => void
+  onPrev: () => void
+  onNext: () => void
+  extraAction?: ReactNode
+}
+
+function QuestionMarathonLayout({
+  theme,
+  text,
+  title,
+  subtitle,
+  questions,
+  currentIndex,
+  currentQuestion,
+  isAnswerOpen,
+  onToggleAnswer,
+  onPrev,
+  onNext,
+  extraAction,
+}: QuestionMarathonLayoutProps) {
+  const isDark = theme === 'dark'
+
+  return (
+    <section className="mt-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold">{title}</h1>
+          <p className={`mt-3 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            {subtitle}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          {extraAction}
+          <Link
+            to="/menu"
+            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+          >
+            {text.backToModes}
+          </Link>
+        </div>
+      </div>
+
+      {questions.length === 0 || !currentQuestion ? (
+        <div className={`mt-10 rounded-3xl border p-8 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+          <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
+            {text.noQuestionsForSelection}
+          </p>
+        </div>
+      ) : (
+        <div className={`mt-10 rounded-3xl border p-6 shadow-sm ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className={`inline-flex rounded-2xl border px-4 py-2 text-sm ${isDark ? 'border-white/10 bg-black/10 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+              {text.questionOf} {currentIndex + 1} / {questions.length}
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              {text.topic}:{' '}
+              <span className={isDark ? 'text-white' : 'text-slate-900'}>
+                {currentQuestion.topicTitle}
+              </span>
+            </div>
+            <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              {text.subtopic}:{' '}
+              <span className={isDark ? 'text-white' : 'text-slate-900'}>
+                {currentQuestion.subtopicTitle}
+              </span>
+            </div>
+          </div>
+
+          <div className={`mt-6 rounded-3xl border p-6 ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'}`}>
+            <h2 className="text-2xl font-semibold leading-9">{currentQuestion.text}</h2>
+
+            <button
+              type="button"
+              onClick={onToggleAnswer}
+              className={`mt-6 inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+            >
+              <span className={`transition ${isAnswerOpen ? 'rotate-180' : ''}`}>⌄</span>
+              {isAnswerOpen ? text.hideAnswer : text.revealAnswer}
+            </button>
+
+            {isAnswerOpen && (
+              <div className={`mt-6 rounded-2xl border p-5 leading-7 ${isDark ? 'border-white/10 bg-slate-900/70 text-slate-100' : 'border-slate-200 bg-white text-slate-700'}`}>
+                {currentQuestion.hasAnswer ? (
+                  <FormattedAnswer text={currentQuestion.answer} />
+                ) : (
+                  <p>{text.noAnswerYet}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={onPrev}
+              disabled={currentIndex === 0}
+              className={`rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${isDark ? 'bg-white text-slate-950 hover:bg-slate-100' : 'bg-slate-950 text-white hover:bg-slate-800'}`}
+            >
+              {text.previous}
+            </button>
+
+            <button
+              type="button"
+              onClick={onNext}
+              disabled={currentIndex >= questions.length - 1}
+              className={`rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${isDark ? 'bg-white text-slate-950 hover:bg-slate-100' : 'bg-slate-950 text-white hover:bg-slate-800'}`}
+            >
+              {text.next}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+type FormattedAnswerProps = {
+  text: string
+}
+
+function FormattedAnswer({ text }: FormattedAnswerProps) {
+  const lines = text.split('\n')
+
+  return (
+    <div className="space-y-3">
+      {lines.map((line, index) => {
+        const trimmed = line.trim()
+
+        if (!trimmed) {
+          return <div key={index} className="h-2" />
+        }
+
+        if (trimmed.startsWith('- ')) {
+          return (
+            <div key={index} className="flex gap-2">
+              <span>•</span>
+              <span>{trimmed.replace(/^- /, '')}</span>
+            </div>
+          )
+        }
+
+        return <p key={index}>{trimmed}</p>
+      })}
+    </div>
+  )
+}
+
 type PlaceholderPageProps = SharedPageProps & {
   title: string
   onInterfaceLanguageChange: (language: Language) => void
@@ -656,11 +1259,7 @@ function PlaceholderPage({
   const isDark = theme === 'dark'
 
   return (
-    <main
-      className={`page-fade min-h-screen ${
-        isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
-      }`}
-    >
+    <main className={`page-fade min-h-screen ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
       <div className="mx-auto max-w-7xl px-6 py-8">
         <SiteHeader
           interfaceLanguage={interfaceLanguage}
@@ -672,11 +1271,7 @@ function PlaceholderPage({
 
         <div className="mt-10 flex items-center justify-between gap-4">
           <div>
-            <p
-              className={`text-sm uppercase tracking-[0.24em] ${
-                isDark ? 'text-slate-400' : 'text-slate-500'
-              }`}
-            >
+            <p className={`text-sm uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               {text.placeholderSection}
             </p>
             <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
@@ -684,36 +1279,18 @@ function PlaceholderPage({
 
           <Link
             to="/menu"
-            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-              isDark
-                ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-            }`}
+            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
           >
             {text.backToModes}
           </Link>
         </div>
 
-        <div
-          className={`mt-10 rounded-3xl border p-8 shadow-sm ${
-            isDark
-              ? 'border-white/10 bg-white/5'
-              : 'border-slate-200 bg-white'
-          }`}
-        >
+        <div className={`mt-10 rounded-3xl border p-8 shadow-sm ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
           <h2 className="text-2xl font-semibold">{title}</h2>
-          <p
-            className={`mt-4 leading-7 ${
-              isDark ? 'text-slate-300' : 'text-slate-600'
-            }`}
-          >
+          <p className={`mt-4 leading-7 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             {text.placeholderText}
           </p>
-          <p
-            className={`mt-4 text-sm ${
-              isDark ? 'text-slate-400' : 'text-slate-500'
-            }`}
-          >
+          <p className={`mt-4 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             {text.comingSoon}
           </p>
         </div>
@@ -740,21 +1317,9 @@ function SiteHeader({
   const isDark = theme === 'dark'
 
   return (
-    <header
-      className={`grid grid-cols-1 items-center gap-4 rounded-3xl border px-5 py-4 sm:grid-cols-[1fr_auto_1fr] ${
-        isDark
-          ? 'border-white/10 bg-white/5'
-          : 'border-slate-200 bg-white'
-      }`}
-    >
+    <header className={`grid grid-cols-1 items-center gap-4 rounded-3xl border px-5 py-4 sm:grid-cols-[1fr_auto_1fr] ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
       <div className="flex items-center justify-center sm:justify-start">
-        <span
-          className={`rounded-full px-3 py-1 text-xs sm:text-sm ${
-            isDark
-              ? 'bg-white/10 text-slate-300'
-              : 'bg-slate-100 text-slate-600'
-          }`}
-        >
+        <span className={`rounded-full px-3 py-1 text-xs sm:text-sm ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
           {text.madeByLabel} Andrey Zakharov
         </span>
       </div>
@@ -767,13 +1332,7 @@ function SiteHeader({
 
       <div className="flex items-center justify-center gap-3 sm:justify-end">
         {onInterfaceLanguageChange && (
-          <div
-            className={`inline-flex rounded-2xl border p-1 ${
-              isDark
-                ? 'border-white/10 bg-white/5'
-                : 'border-slate-200 bg-slate-50'
-            }`}
-          >
+          <div className={`inline-flex rounded-2xl border p-1 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
             <button
               type="button"
               onClick={() => onInterfaceLanguageChange('ru')}
@@ -810,27 +1369,12 @@ function SiteHeader({
         <button
           type="button"
           onClick={onToggleTheme}
-          className={`rounded-2xl border px-3 py-2 transition ${
-            isDark
-              ? 'border-white/10 bg-white/5 text-slate-200'
-              : 'border-slate-200 bg-slate-50 text-slate-700'
-          }`}
+          className={`rounded-2xl border px-3 py-2 transition ${isDark ? 'border-white/10 bg-white/5 text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
           aria-label={theme === 'dark' ? text.themeLight : text.themeDark}
           title={theme === 'dark' ? text.themeLight : text.themeDark}
         >
-          <span
-            className={`theme-toggle-track border ${
-              isDark
-                ? 'border-white/10 bg-slate-800'
-                : 'border-slate-200 bg-slate-200'
-            }`}
-            data-theme={theme}
-          >
-            <span
-              className={`theme-toggle-thumb ${
-                isDark ? 'bg-white' : 'bg-slate-950'
-              }`}
-            />
+          <span className={`theme-toggle-track border ${isDark ? 'border-white/10 bg-slate-800' : 'border-slate-200 bg-slate-200'}`} data-theme={theme}>
+            <span className={`theme-toggle-thumb ${isDark ? 'bg-white' : 'bg-slate-950'}`} />
           </span>
         </button>
       </div>
@@ -861,19 +1405,11 @@ function LanguageChoiceCard({
     <button
       type="button"
       onClick={onClick}
-      className={`cursor-pointer rounded-3xl border p-5 text-left transition hover:translate-y-[-2px] ${
-        isDark
-          ? 'border-white/10 bg-black/10 text-white hover:bg-white/10'
-          : 'border-slate-200 bg-slate-50 text-slate-900 hover:bg-white'
-      }`}
+      className={`cursor-pointer rounded-3xl border p-5 text-left transition hover:translate-y-[-2px] ${isDark ? 'border-white/10 bg-black/10 text-white hover:bg-white/10' : 'border-slate-200 bg-slate-50 text-slate-900 hover:bg-white'}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div
-            className={`text-xs uppercase tracking-[0.24em] ${
-              isDark ? 'text-slate-400' : 'text-slate-500'
-            }`}
-          >
+          <div className={`text-xs uppercase tracking-[0.24em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             {languageCode}
           </div>
           <h3 className="mt-2 text-2xl font-semibold">{title}</h3>
@@ -899,13 +1435,7 @@ function MiniStat({ label, value, theme }: MiniStatProps) {
   const isDark = theme === 'dark'
 
   return (
-    <div
-      className={`rounded-2xl p-3 ${
-        isDark
-          ? 'bg-white/5 text-slate-200'
-          : 'bg-white text-slate-900'
-      }`}
-    >
+    <div className={`rounded-2xl p-3 ${isDark ? 'bg-white/5 text-slate-200' : 'bg-white text-slate-900'}`}>
       <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
         {label}
       </div>
@@ -939,35 +1469,17 @@ function MenuCard({
 
   if (disabled) {
     return (
-      <div
-        className={`relative overflow-hidden rounded-3xl border p-6 shadow-sm ${
-          isDark
-            ? 'border-white/10 bg-white/5'
-            : 'border-slate-200 bg-white'
-        }`}
-      >
+      <div className={`relative overflow-hidden rounded-3xl border p-6 shadow-sm ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}>
         <div className="pointer-events-none absolute inset-0 z-10 bg-slate-950/45 backdrop-blur-[1px]" />
 
         <div className="absolute left-4 top-4 z-20">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              isDark
-                ? 'bg-white text-slate-950'
-                : 'bg-slate-950 text-white'
-            }`}
-          >
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDark ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'}`}>
             {disabledLabel}
           </span>
         </div>
 
         <div className="absolute inset-0 z-20 flex items-center justify-center p-6">
-          <div
-            className={`rounded-2xl px-4 py-3 text-center text-sm font-medium shadow-lg ${
-              isDark
-                ? 'bg-slate-900 text-white'
-                : 'bg-white text-slate-900'
-            }`}
-          >
+          <div className={`rounded-2xl px-4 py-3 text-center text-sm font-medium shadow-lg ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}`}>
             {disabledOverlayText}
           </div>
         </div>
@@ -992,11 +1504,7 @@ function MenuCard({
   return (
     <Link
       to={to}
-      className={`group cursor-pointer rounded-3xl border p-6 shadow-sm transition hover:translate-y-[-2px] hover:shadow-lg ${
-        isDark
-          ? 'border-white/10 bg-white/5'
-          : 'border-slate-200 bg-white'
-      }`}
+      className={`group cursor-pointer rounded-3xl border p-6 shadow-sm transition hover:translate-y-[-2px] hover:shadow-lg ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}
     >
       <div className="flex h-full flex-col justify-between gap-6">
         <div>
