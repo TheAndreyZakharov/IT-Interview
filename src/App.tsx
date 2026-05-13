@@ -27,7 +27,7 @@ type ThemeMode = 'light' | 'dark'
 
 type Dictionary = {
   siteTitle: string
-  authorLabel: string
+  madeByLabel: string
   heroTitle: string
   heroSubtitle: string
   languageTitle: string
@@ -70,7 +70,7 @@ const EMPTY_FILES: string[] = []
 const TEXT: Record<Language, Dictionary> = {
   ru: {
     siteTitle: 'IT INTERVIEW',
-    authorLabel: 'Автор',
+    madeByLabel: 'Сделано',
     heroTitle: 'Подготовка к IT-собеседованиям в одном месте',
     heroSubtitle:
       'На этом сайте собрана большая база вопросов для подготовки к IT-собеседованиям на русском и английском языках. Здесь будут марафоны, оглавления, режимы просмотра вопросов и ответов и удобная навигация по темам.',
@@ -130,7 +130,7 @@ const TEXT: Record<Language, Dictionary> = {
   },
   en: {
     siteTitle: 'IT INTERVIEW',
-    authorLabel: 'Author',
+    madeByLabel: 'Made by',
     heroTitle: 'Prepare for IT interviews in one place',
     heroSubtitle:
       'This site contains a large question bank for IT interview preparation in Russian and English. It will include marathons, table-of-contents views, question and answer modes, and convenient topic navigation.',
@@ -464,13 +464,6 @@ function HomePage({
         <section className="flex flex-1 items-center justify-center py-12">
           <div className="w-full max-w-5xl">
             <div className="mx-auto max-w-3xl text-center">
-              <p
-                className={`text-sm uppercase tracking-[0.24em] ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
-                }`}
-              >
-                {text.siteTitle}
-              </p>
               <h1 className="mt-4 text-4xl font-semibold sm:text-5xl">
                 {text.heroTitle}
               </h1>
@@ -778,35 +771,31 @@ function SiteHeader({
 
   return (
     <header
-      className={`flex flex-col gap-4 rounded-3xl border px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
+      className={`grid grid-cols-1 items-center gap-4 rounded-3xl border px-5 py-4 sm:grid-cols-[1fr_auto_1fr] ${
         isDark
           ? 'border-white/10 bg-white/5'
           : 'border-slate-200 bg-white'
       }`}
     >
-      <div>
-        <div
-          className={`text-xs uppercase tracking-[0.28em] ${
-            isDark ? 'text-slate-400' : 'text-slate-500'
+      <div className="flex items-center justify-center sm:justify-start">
+        <span
+          className={`rounded-full px-3 py-1 text-xs sm:text-sm ${
+            isDark
+              ? 'bg-white/10 text-slate-300'
+              : 'bg-slate-100 text-slate-600'
           }`}
         >
-          {text.siteTitle}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <span className="text-xl font-semibold">{text.siteTitle}</span>
-          <span
-            className={`rounded-full px-3 py-1 text-xs ${
-              isDark
-                ? 'bg-white/10 text-slate-300'
-                : 'bg-slate-100 text-slate-600'
-            }`}
-          >
-            {text.authorLabel}: Andrey Zakharov
-          </span>
-        </div>
+          {text.madeByLabel} Andrey Zakharov
+        </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center justify-center">
+        <span className="text-xl font-semibold tracking-[0.18em] sm:text-2xl">
+          {text.siteTitle}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-center gap-3 sm:justify-end">
         {onInterfaceLanguageChange && (
           <div
             className={`inline-flex rounded-2xl border p-1 ${
