@@ -11,7 +11,7 @@
   line-height: 1.5;
   font-weight: 400;
   color: #111827;
-  background: #020617;
+  background: #f8fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -27,6 +27,13 @@ body,
 
 body {
   min-width: 320px;
+  background: #f8fafc;
+  color: #111827;
+}
+
+html.dark body {
+  background: #020617;
+  color: #e2e8f0;
 }
 
 * {
@@ -38,4 +45,9 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
