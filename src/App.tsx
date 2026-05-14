@@ -167,18 +167,16 @@ const EMPTY_LANGUAGE_CONTENT: LanguageContentData = {
 const TEXT: Record<Language, Dictionary> = {
   ru: {
     siteTitle: 'IT INTERVIEW',
-    madeByLabel: 'Сделано',
+    madeByLabel: 'Made by',
     heroTitle: 'Подготовка к IT-собеседованиям в одном месте',
     heroSubtitle:
       'На этом сайте собрана большая база вопросов для подготовки к IT-собеседованиям на русском и английском языках. Здесь есть марафон по вопросам, оглавление, ответы и удобная навигация по темам.',
     languageTitle: 'Выберите язык базы',
     languageHint:
-      'Язык интерфейса определяется автоматически по языку браузера, но его можно переключить вручную. Для начала работы просто нажмите на одну из карточек языка ниже.',
-    languageRu: 'Русский',
+      'Вы выбираете язык базы, в которую хотите войти. Для начала работы просто нажмите на одну из карточек языка ниже.',    languageRu: 'Русский',
     languageEn: 'English',
     chooseLanguageCardHint:
-      'После нажатия на карточку выбранный язык сохранится и будет использоваться на следующих страницах.',
-    updatedAt: 'Последнее обновление базы',
+      'После нажатия на карточку выбранный язык сохранится и будет использоваться на следующих страницах.',    updatedAt: 'Последнее обновление базы',
     totalQuestions: 'Количество вопросов',
     totalAnswers: 'Количество ответов',
     totalHeadings: 'Количество тем и подтем',
@@ -238,12 +236,10 @@ const TEXT: Record<Language, Dictionary> = {
       'This site contains a large question bank for IT interview preparation in Russian and English. It includes a question marathon, contents, answers, and convenient topic navigation.',
     languageTitle: 'Choose the question bank language',
     languageHint:
-      'The interface language is selected automatically from the browser language, but you can switch it manually. To begin, just click one of the language cards below.',
-    languageRu: 'Russian',
+      'Choose the question bank language you want to enter. To begin, just click one of the language cards below.',    languageRu: 'Russian',
     languageEn: 'English',
     chooseLanguageCardHint:
-      'After clicking a card, the selected language will be saved and used on the next pages.',
-    updatedAt: 'Question bank last updated',
+      'After clicking a card, the selected question bank language will be saved and used on the next pages.',    updatedAt: 'Question bank last updated',
     totalQuestions: 'Question count',
     totalAnswers: 'Answer count',
     totalHeadings: 'Topics and subtopics',
