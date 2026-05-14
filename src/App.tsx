@@ -191,8 +191,8 @@ const TEXT: Record<Language, Dictionary> = {
     backToModes: 'Назад к выбору режима',
     noAnswerYet: 'Для этого вопроса ответ пока не добавлен.',
     answersSoon: 'Ответы скоро появятся.',
-    revealAnswer: 'Показать ответ / подсказку / пояснение',
-    hideAnswer: 'Скрыть ответ',
+    revealAnswer: 'Подсказка',
+    hideAnswer: 'Скрыть подсказку',
     previous: 'Назад',
     next: 'Вперёд',
     questionOf: 'Вопрос',
@@ -256,8 +256,8 @@ const TEXT: Record<Language, Dictionary> = {
     backToModes: 'Back to mode selection',
     noAnswerYet: 'There is no answer for this question yet.',
     answersSoon: 'Answers will appear soon.',
-    revealAnswer: 'Show answer / hint / explanation',
-    hideAnswer: 'Hide answer',
+    revealAnswer: 'Hint',
+    hideAnswer: 'Hide hint',
     previous: 'Previous',
     next: 'Next',
     questionOf: 'Question',
@@ -894,6 +894,16 @@ function MarathonPage({
 
   const currentQuestion = questions[currentIndex] ?? null
 
+  function goToPreviousQuestion() {
+    setCurrentIndex((prev) => Math.max(prev - 1, 0))
+    setIsAnswerOpen(false)
+  }
+
+  function goToNextQuestion() {
+    setCurrentIndex((prev) => Math.min(prev + 1, questions.length - 1))
+    setIsAnswerOpen(false)
+  }
+
   return (
     <main
       className={`page-fade min-h-screen ${
@@ -937,54 +947,63 @@ function MarathonPage({
             />
           </>
         ) : (
-          <QuestionMarathonLayout
-            key={shuffleSeed}
-            theme={theme}
-            text={text}
-            title={text.marathonTitle}
-            subtitle={`${text.selectedItems}: ${selectedIds.length}. ${text.randomModeHint}`}
-            questions={questions}
-            tocFlat={content.tocFlat}
-            currentIndex={currentIndex}
-            currentQuestion={currentQuestion}
-            isAnswerOpen={isAnswerOpen}
-            onToggleAnswer={() => setIsAnswerOpen((prev) => !prev)}
-            onPrev={() => {
-              setCurrentIndex((prev) => Math.max(prev - 1, 0))
-              setIsAnswerOpen(false)
-            }}
-            onNext={() => {
-              setCurrentIndex((prev) => Math.min(prev + 1, questions.length - 1))
-              setIsAnswerOpen(false)
-            }}
-            extraAction={
-              <>
-                <button
-                  type="button"
-                  onClick={reshuffleCurrentQuestions}
-                  className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                    isDark
-                      ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                      : 'border-slate-300 bg-white hover:bg-slate-50'
-                  }`}
-                >
-                  {text.shuffleAgain}
-                </button>
+          <>
+            <div className="mt-6">
+              <Link
+                to="/menu"
+                className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+                  isDark
+                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                ← {text.backToModes}
+              </Link>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsSelectorOpen(true)}
-                  className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                    isDark
-                      ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                      : 'border-slate-300 bg-white hover:bg-slate-50'
-                  }`}
-                >
-                  {text.closeSelection}
-                </button>
-              </>
-            }
-          />
+            <QuestionMarathonLayout
+              key={shuffleSeed}
+              theme={theme}
+              text={text}
+              title={text.marathonTitle}
+              subtitle={`${text.selectedItems}: ${selectedIds.length}. ${text.randomModeHint}`}
+              questions={questions}
+              tocFlat={content.tocFlat}
+              currentIndex={currentIndex}
+              currentQuestion={currentQuestion}
+              isAnswerOpen={isAnswerOpen}
+              onToggleAnswer={() => setIsAnswerOpen((prev) => !prev)}
+              onPrev={goToPreviousQuestion}
+              onNext={goToNextQuestion}
+              extraAction={
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsSelectorOpen(true)}
+                    className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                      isDark
+                        ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                        : 'border-slate-300 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    {text.closeSelection}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={reshuffleCurrentQuestions}
+                    className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                      isDark
+                        ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                        : 'border-slate-300 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    {text.shuffleAgain}
+                  </button>
+                </>
+              }
+            />
+          </>
         )}
       </div>
     </main>
@@ -1326,10 +1345,8 @@ function OverviewQuestionAnswerBlock({
       <button
         type="button"
         onClick={() => setIsAnswerOpen((prev) => !prev)}
-        className={`mt-5 inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-          isDark
-            ? 'border-white/10 bg-white/5 hover:bg-white/10'
-            : 'border-slate-300 bg-white hover:bg-slate-50'
+        className={`mt-5 inline-flex items-center gap-2 text-sm underline-offset-4 transition hover:underline ${
+          isDark ? 'text-slate-300 hover:text-white' : 'text-slate-500 hover:text-slate-900'
         }`}
       >
         <span className={`transition ${isAnswerOpen ? 'rotate-180' : ''}`}>⌄</span>
@@ -1607,34 +1624,56 @@ function QuestionMarathonLayout({
     ? getQuestionSubtopicTrail(currentQuestion, tocFlat)
     : []
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      const tagName = target?.tagName.toLowerCase()
+
+      if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+        return
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        onPrev()
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        onNext()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onPrev, onNext])
+
   return (
     <section className="mt-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold">{title}</h1>
-          <p className={`mt-3 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-            {subtitle}
-          </p>
-        </div>
+      <div className="mx-auto max-w-3xl text-center">
+        <h1 className="text-3xl font-semibold">{title}</h1>
 
-        <div className="flex flex-wrap gap-3">
-          {extraAction}
-          <Link
-            to="/menu"
-            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-              isDark
-                ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            {text.backToModes}
-          </Link>
-        </div>
+        <p
+          className={`mt-4 text-lg leading-8 ${
+            isDark ? 'text-slate-300' : 'text-slate-600'
+          }`}
+        >
+          {subtitle}
+        </p>
+
+        {extraAction && (
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            {extraAction}
+          </div>
+        )}
       </div>
 
       {questions.length === 0 || !currentQuestion ? (
         <div
-          className={`mt-10 rounded-3xl border p-8 ${
+          className={`mx-auto mt-10 max-w-3xl rounded-3xl border p-8 text-center ${
             isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
           }`}
         >
@@ -1644,7 +1683,7 @@ function QuestionMarathonLayout({
         </div>
       ) : (
         <div
-          className={`mt-10 rounded-3xl border p-6 shadow-sm ${
+          className={`mx-auto mt-10 max-w-4xl rounded-3xl border p-6 text-center shadow-sm ${
             isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
           }`}
         >
@@ -1658,7 +1697,7 @@ function QuestionMarathonLayout({
             {text.questionOf} {currentIndex + 1} / {questions.length}
           </div>
 
-          <div className="mt-6 space-y-4">
+          <div className="mx-auto mt-6 max-w-2xl space-y-4 text-center">
             <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               {text.topic}:{' '}
               <span className={isDark ? 'text-white' : 'text-slate-900'}>
@@ -1683,20 +1722,18 @@ function QuestionMarathonLayout({
               isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
             }`}
           >
-            <h2 className="text-2xl font-semibold leading-9">
+            <h2 className="mx-auto max-w-3xl text-center text-2xl font-semibold leading-9">
               {currentQuestion.text}
             </h2>
 
             <button
               type="button"
               onClick={onToggleAnswer}
-              className={`mt-6 inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                  : 'border-slate-300 bg-white hover:bg-slate-50'
+              className={`mt-5 inline-flex items-center gap-1 text-sm underline-offset-4 transition hover:underline ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              <span className={`transition ${isAnswerOpen ? 'rotate-180' : ''}`}>
+              <span className={`text-xs transition ${isAnswerOpen ? 'rotate-180' : ''}`}>
                 ⌄
               </span>
               {isAnswerOpen ? text.hideAnswer : text.revealAnswer}
@@ -1704,7 +1741,7 @@ function QuestionMarathonLayout({
 
             {isAnswerOpen && (
               <div
-                className={`mt-6 rounded-2xl border p-5 leading-7 ${
+                className={`mx-auto mt-6 max-w-3xl rounded-2xl border p-5 text-left leading-7 ${
                   isDark
                     ? 'border-white/10 bg-slate-900/70 text-slate-100'
                     : 'border-slate-200 bg-white text-slate-700'
@@ -1719,7 +1756,7 @@ function QuestionMarathonLayout({
             )}
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <button
               type="button"
               onClick={onPrev}
@@ -1730,7 +1767,7 @@ function QuestionMarathonLayout({
                   : 'bg-slate-950 text-white hover:bg-slate-800'
               }`}
             >
-              {text.previous}
+              ← {text.previous}
             </button>
 
             <button
@@ -1743,7 +1780,7 @@ function QuestionMarathonLayout({
                   : 'bg-slate-950 text-white hover:bg-slate-800'
               }`}
             >
-              {text.next}
+              {text.next} →
             </button>
           </div>
         </div>
