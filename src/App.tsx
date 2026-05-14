@@ -1683,7 +1683,7 @@ function QuestionMarathonLayout({
         </div>
       ) : (
         <div
-          className={`mx-auto mt-10 max-w-4xl rounded-3xl border p-6 text-center shadow-sm ${
+          className={`mx-auto mt-10 max-w-4xl rounded-3xl border p-6 shadow-sm ${
             isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
           }`}
         >
@@ -1697,7 +1697,7 @@ function QuestionMarathonLayout({
             {text.questionOf} {currentIndex + 1} / {questions.length}
           </div>
 
-          <div className="mx-auto mt-6 max-w-2xl space-y-4 text-center">
+          <div className="mt-6 max-w-2xl space-y-4 text-left">
             <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               {text.topic}:{' '}
               <span className={isDark ? 'text-white' : 'text-slate-900'}>
@@ -1718,7 +1718,7 @@ function QuestionMarathonLayout({
           </div>
 
           <div
-            className={`mt-6 rounded-3xl border p-6 ${
+            className={`mt-6 rounded-3xl border p-6 text-center ${
               isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
             }`}
           >
