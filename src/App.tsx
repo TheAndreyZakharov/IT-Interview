@@ -843,7 +843,7 @@ function MarathonPage({
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnswerOpen, setIsAnswerOpen] = useState(false)
   const [shuffleSeed, setShuffleSeed] = useState(0)
-  const [isBackToMenuConfirmOpen, setIsBackToMenuConfirmOpen] = useState(false)
+  const [isMenuConfirmOpen, setIsMenuConfirmOpen] = useState(false)
   const isDark = theme === 'dark'
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
@@ -894,6 +894,24 @@ function MarathonPage({
     setIsAnswerOpen(false)
   }
 
+  function handleBackToMenuClick() {
+    if (isSelectorOpen) {
+      navigate('/menu')
+      return
+    }
+
+    setIsMenuConfirmOpen(true)
+  }
+
+  function handleConfirmBackToMenu() {
+    setIsMenuConfirmOpen(false)
+    navigate('/menu')
+  }
+
+  function handleCloseMenuConfirm() {
+    setIsMenuConfirmOpen(false)
+  }
+
   const currentQuestion = questions[currentIndex] ?? null
 
   function goToPreviousQuestion() {
@@ -904,24 +922,6 @@ function MarathonPage({
   function goToNextQuestion() {
     setCurrentIndex((prev) => Math.min(prev + 1, questions.length - 1))
     setIsAnswerOpen(false)
-  }
-
-  function handleBackToMenuClick() {
-    if (!isSelectorOpen) {
-      setIsBackToMenuConfirmOpen(true)
-      return
-    }
-
-    navigate('/menu')
-  }
-
-  function handleConfirmBackToMenu() {
-    setIsBackToMenuConfirmOpen(false)
-    navigate('/menu')
-  }
-
-  function handleCloseBackToMenuConfirm() {
-    setIsBackToMenuConfirmOpen(false)
   }
 
   return (
@@ -1011,67 +1011,13 @@ function MarathonPage({
         )}
       </div>
 
-      {isBackToMenuConfirmOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-          <button
-            type="button"
-            aria-label="Close confirmation modal"
-            onClick={handleCloseBackToMenuConfirm}
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-          />
-
-          <div
-            className={`relative z-[101] w-full max-w-lg rounded-3xl border p-6 shadow-2xl ${
-              isDark
-                ? 'border-white/10 bg-slate-950 text-white'
-                : 'border-slate-200 bg-white text-slate-900'
-            }`}
-          >
-            <div
-              className={`inline-flex rounded-2xl px-3 py-1 text-xs font-semibold ${
-                isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
-              }`}
-            >
-              {text.siteTitle}
-            </div>
-
-            <h3 className="mt-4 text-2xl font-semibold">{text.confirmLeaveTitle}</h3>
-
-            <p
-              className={`mt-4 leading-7 ${
-                isDark ? 'text-slate-300' : 'text-slate-600'
-              }`}
-            >
-              {text.confirmLeaveText}
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handleCloseBackToMenuConfirm}
-                className={`rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-                  isDark
-                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {text.confirmLeaveStay}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleConfirmBackToMenu}
-                className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
-                  isDark
-                    ? 'bg-white text-slate-950 hover:bg-slate-100'
-                    : 'bg-slate-950 text-white hover:bg-slate-800'
-                }`}
-              >
-                {text.confirmLeaveGo}
-              </button>
-            </div>
-          </div>
-        </div>
+      {isMenuConfirmOpen && (
+        <ConfirmLeaveModal
+          theme={theme}
+          text={text}
+          onStay={handleCloseMenuConfirm}
+          onGo={handleConfirmBackToMenu}
+        />
       )}
     </main>
   )
@@ -1887,6 +1833,85 @@ function FormattedAnswer({ text }: FormattedAnswerProps) {
   )
 }
 
+type ConfirmLeaveModalProps = {
+  theme: ThemeMode
+  text: Dictionary
+  onStay: () => void
+  onGo: () => void
+}
+
+function ConfirmLeaveModal({
+  theme,
+  text,
+  onStay,
+  onGo,
+}: ConfirmLeaveModalProps) {
+  const isDark = theme === 'dark'
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+      <button
+        type="button"
+        aria-label="Close confirmation modal"
+        onClick={onStay}
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+      />
+
+      <div
+        className={`relative z-[101] w-full max-w-lg rounded-3xl border p-6 shadow-2xl ${
+          isDark
+            ? 'border-white/10 bg-slate-950 text-white'
+            : 'border-slate-200 bg-white text-slate-900'
+        }`}
+      >
+        <div
+          className={`inline-flex rounded-2xl px-3 py-1 text-xs font-semibold ${
+            isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
+          }`}
+        >
+          {text.siteTitle}
+        </div>
+
+        <h3 className="mt-4 text-2xl font-semibold">{text.confirmLeaveTitle}</h3>
+
+        <p
+          className={`mt-4 leading-7 ${
+            isDark ? 'text-slate-300' : 'text-slate-600'
+          }`}
+        >
+          {text.confirmLeaveText}
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={onStay}
+            className={`rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+              isDark
+                ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            {text.confirmLeaveStay}
+          </button>
+
+          <button
+            type="button"
+            onClick={onGo}
+            className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+              isDark
+                ? 'bg-white text-slate-950 hover:bg-slate-100'
+                : 'bg-slate-950 text-white hover:bg-slate-800'
+            }`}
+          >
+            {text.confirmLeaveGo}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 type SiteHeaderProps = {
   interfaceLanguage: Language
   theme: ThemeMode
@@ -2022,66 +2047,12 @@ function SiteHeader({
       </header>
 
       {isConfirmOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-          <button
-            type="button"
-            aria-label="Close confirmation modal"
-            onClick={handleCloseConfirm}
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-          />
-
-          <div
-            className={`relative z-[101] w-full max-w-lg rounded-3xl border p-6 shadow-2xl ${
-              isDark
-                ? 'border-white/10 bg-slate-950 text-white'
-                : 'border-slate-200 bg-white text-slate-900'
-            }`}
-          >
-            <div
-              className={`inline-flex rounded-2xl px-3 py-1 text-xs font-semibold ${
-                isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
-              }`}
-            >
-              {text.siteTitle}
-            </div>
-
-            <h3 className="mt-4 text-2xl font-semibold">{text.confirmLeaveTitle}</h3>
-
-            <p
-              className={`mt-4 leading-7 ${
-                isDark ? 'text-slate-300' : 'text-slate-600'
-              }`}
-            >
-              {text.confirmLeaveText}
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handleCloseConfirm}
-                className={`rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-                  isDark
-                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {text.confirmLeaveStay}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleConfirmGoHome}
-                className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
-                  isDark
-                    ? 'bg-white text-slate-950 hover:bg-slate-100'
-                    : 'bg-slate-950 text-white hover:bg-slate-800'
-                }`}
-              >
-                {text.confirmLeaveGo}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmLeaveModal
+          theme={theme}
+          text={text}
+          onStay={handleCloseConfirm}
+          onGo={handleConfirmGoHome}
+        />
       )}
     </>
   )
