@@ -133,6 +133,9 @@ type Dictionary = {
   confirmLeaveText: string
   confirmLeaveStay: string
   confirmLeaveGo: string
+  confirmBackToModesTitle: string
+  confirmBackToModesText: string
+  confirmBackToModesGo: string
   showContents: string
   hideContents: string
   contents: string
@@ -216,6 +219,10 @@ const TEXT: Record<Language, Dictionary> = {
       'Вы сейчас находитесь в марафоне. Если перейти на главный экран, текущий прогресс на этой странице сбросится.',
     confirmLeaveStay: 'Остаться',
     confirmLeaveGo: 'Перейти',
+    confirmBackToModesTitle: 'Вернуться к выбору режима?',
+    confirmBackToModesText:
+      'Вы сейчас находитесь в марафоне. Если вернуться к выбору режима, текущий прогресс на этой странице сбросится.',
+    confirmBackToModesGo: 'Вернуться',
     showContents: 'Показать содержание',
     hideContents: 'Скрыть содержание',
     contents: 'Содержание',
@@ -281,6 +288,10 @@ const TEXT: Record<Language, Dictionary> = {
       'You are currently in a marathon. If you go to the home page, the current progress on this page will be reset.',
     confirmLeaveStay: 'Stay',
     confirmLeaveGo: 'Go',
+    confirmBackToModesTitle: 'Return to mode selection?',
+    confirmBackToModesText:
+      'You are currently in a marathon. If you return to mode selection, the current progress on this page will be reset.',
+    confirmBackToModesGo: 'Return',
     showContents: 'Show contents',
     hideContents: 'Hide contents',
     contents: 'Contents',
@@ -1014,7 +1025,11 @@ function MarathonPage({
       {isMenuConfirmOpen && (
         <ConfirmLeaveModal
           theme={theme}
-          text={text}
+          title={text.confirmBackToModesTitle}
+          description={text.confirmBackToModesText}
+          stayLabel={text.confirmLeaveStay}
+          goLabel={text.confirmBackToModesGo}
+          siteTitle={text.siteTitle}
           onStay={handleCloseMenuConfirm}
           onGo={handleConfirmBackToMenu}
         />
@@ -1835,14 +1850,22 @@ function FormattedAnswer({ text }: FormattedAnswerProps) {
 
 type ConfirmLeaveModalProps = {
   theme: ThemeMode
-  text: Dictionary
+  title: string
+  description: string
+  stayLabel: string
+  goLabel: string
+  siteTitle: string
   onStay: () => void
   onGo: () => void
 }
 
 function ConfirmLeaveModal({
   theme,
-  text,
+  title,
+  description,
+  stayLabel,
+  goLabel,
+  siteTitle,
   onStay,
   onGo,
 }: ConfirmLeaveModalProps) {
@@ -1869,17 +1892,17 @@ function ConfirmLeaveModal({
             isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
           }`}
         >
-          {text.siteTitle}
+          {siteTitle}
         </div>
 
-        <h3 className="mt-4 text-2xl font-semibold">{text.confirmLeaveTitle}</h3>
+        <h3 className="mt-4 text-2xl font-semibold">{title}</h3>
 
         <p
           className={`mt-4 leading-7 ${
             isDark ? 'text-slate-300' : 'text-slate-600'
           }`}
         >
-          {text.confirmLeaveText}
+          {description}
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
@@ -1892,7 +1915,7 @@ function ConfirmLeaveModal({
                 : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
             }`}
           >
-            {text.confirmLeaveStay}
+            {stayLabel}
           </button>
 
           <button
@@ -1904,7 +1927,7 @@ function ConfirmLeaveModal({
                 : 'bg-slate-950 text-white hover:bg-slate-800'
             }`}
           >
-            {text.confirmLeaveGo}
+            {goLabel}
           </button>
         </div>
       </div>
@@ -2049,7 +2072,11 @@ function SiteHeader({
       {isConfirmOpen && (
         <ConfirmLeaveModal
           theme={theme}
-          text={text}
+          title={text.confirmLeaveTitle}
+          description={text.confirmLeaveText}
+          stayLabel={text.confirmLeaveStay}
+          goLabel={text.confirmLeaveGo}
+          siteTitle={text.siteTitle}
           onStay={handleCloseConfirm}
           onGo={handleConfirmGoHome}
         />
