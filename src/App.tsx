@@ -832,6 +832,7 @@ function MarathonPage({
   text,
   contentData,
 }: MarathonPageProps) {
+  const navigate = useNavigate()
   const content = useMemo(
     () => getContentForBankLanguage(contentData, bankLanguage),
     [contentData, bankLanguage]
@@ -842,6 +843,7 @@ function MarathonPage({
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnswerOpen, setIsAnswerOpen] = useState(false)
   const [shuffleSeed, setShuffleSeed] = useState(0)
+  const [isBackToMenuConfirmOpen, setIsBackToMenuConfirmOpen] = useState(false)
   const isDark = theme === 'dark'
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
@@ -904,6 +906,24 @@ function MarathonPage({
     setIsAnswerOpen(false)
   }
 
+  function handleBackToMenuClick() {
+    if (!isSelectorOpen) {
+      setIsBackToMenuConfirmOpen(true)
+      return
+    }
+
+    navigate('/menu')
+  }
+
+  function handleConfirmBackToMenu() {
+    setIsBackToMenuConfirmOpen(false)
+    navigate('/menu')
+  }
+
+  function handleCloseBackToMenuConfirm() {
+    setIsBackToMenuConfirmOpen(false)
+  }
+
   return (
     <main
       className={`page-fade min-h-screen ${
@@ -918,94 +938,141 @@ function MarathonPage({
           text={text}
         />
 
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={handleBackToMenuClick}
+            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+              isDark
+                ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            ← {text.backToModes}
+          </button>
+        </div>
+
         {isSelectorOpen ? (
-          <>
-            <div className="mt-6">
-              <Link
-                to="/menu"
-                className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-                  isDark
-                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                ← {text.backToModes}
-              </Link>
-            </div>
-
-            <TopicSelectorPanel
-              theme={theme}
-              text={text}
-              tocTree={content.tocTree}
-              tocFlat={content.tocFlat}
-              selectedIds={selectedIds}
-              selectedQuestionsCount={selectedQuestionsCount}
-              onToggleNode={toggleNode}
-              onSelectAll={() => setSelectedIds(content.tocFlat.map((item) => item.id))}
-              onClearAll={() => setSelectedIds([])}
-              onStart={startSelectedMarathon}
-            />
-          </>
+          <TopicSelectorPanel
+            theme={theme}
+            text={text}
+            tocTree={content.tocTree}
+            tocFlat={content.tocFlat}
+            selectedIds={selectedIds}
+            selectedQuestionsCount={selectedQuestionsCount}
+            onToggleNode={toggleNode}
+            onSelectAll={() => setSelectedIds(content.tocFlat.map((item) => item.id))}
+            onClearAll={() => setSelectedIds([])}
+            onStart={startSelectedMarathon}
+          />
         ) : (
-          <>
-            <div className="mt-6">
-              <Link
-                to="/menu"
-                className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-                  isDark
-                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                ← {text.backToModes}
-              </Link>
-            </div>
+          <QuestionMarathonLayout
+            key={shuffleSeed}
+            theme={theme}
+            text={text}
+            title={text.marathonTitle}
+            subtitle={`${text.selectedItems}: ${selectedIds.length}. ${text.randomModeHint}`}
+            questions={questions}
+            tocFlat={content.tocFlat}
+            currentIndex={currentIndex}
+            currentQuestion={currentQuestion}
+            isAnswerOpen={isAnswerOpen}
+            onToggleAnswer={() => setIsAnswerOpen((prev) => !prev)}
+            onPrev={goToPreviousQuestion}
+            onNext={goToNextQuestion}
+            extraAction={
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsSelectorOpen(true)}
+                  className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                    isDark
+                      ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                      : 'border-slate-300 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  {text.closeSelection}
+                </button>
 
-            <QuestionMarathonLayout
-              key={shuffleSeed}
-              theme={theme}
-              text={text}
-              title={text.marathonTitle}
-              subtitle={`${text.selectedItems}: ${selectedIds.length}. ${text.randomModeHint}`}
-              questions={questions}
-              tocFlat={content.tocFlat}
-              currentIndex={currentIndex}
-              currentQuestion={currentQuestion}
-              isAnswerOpen={isAnswerOpen}
-              onToggleAnswer={() => setIsAnswerOpen((prev) => !prev)}
-              onPrev={goToPreviousQuestion}
-              onNext={goToNextQuestion}
-              extraAction={
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setIsSelectorOpen(true)}
-                    className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                      isDark
-                        ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                        : 'border-slate-300 bg-white hover:bg-slate-50'
-                    }`}
-                  >
-                    {text.closeSelection}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={reshuffleCurrentQuestions}
-                    className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                      isDark
-                        ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                        : 'border-slate-300 bg-white hover:bg-slate-50'
-                    }`}
-                  >
-                    {text.shuffleAgain}
-                  </button>
-                </>
-              }
-            />
-          </>
+                <button
+                  type="button"
+                  onClick={reshuffleCurrentQuestions}
+                  className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                    isDark
+                      ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                      : 'border-slate-300 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  {text.shuffleAgain}
+                </button>
+              </>
+            }
+          />
         )}
       </div>
+
+      {isBackToMenuConfirmOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+          <button
+            type="button"
+            aria-label="Close confirmation modal"
+            onClick={handleCloseBackToMenuConfirm}
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+          />
+
+          <div
+            className={`relative z-[101] w-full max-w-lg rounded-3xl border p-6 shadow-2xl ${
+              isDark
+                ? 'border-white/10 bg-slate-950 text-white'
+                : 'border-slate-200 bg-white text-slate-900'
+            }`}
+          >
+            <div
+              className={`inline-flex rounded-2xl px-3 py-1 text-xs font-semibold ${
+                isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
+              }`}
+            >
+              {text.siteTitle}
+            </div>
+
+            <h3 className="mt-4 text-2xl font-semibold">{text.confirmLeaveTitle}</h3>
+
+            <p
+              className={`mt-4 leading-7 ${
+                isDark ? 'text-slate-300' : 'text-slate-600'
+              }`}
+            >
+              {text.confirmLeaveText}
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleCloseBackToMenuConfirm}
+                className={`rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+                  isDark
+                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {text.confirmLeaveStay}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmBackToMenu}
+                className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+                  isDark
+                    ? 'bg-white text-slate-950 hover:bg-slate-100'
+                    : 'bg-slate-950 text-white hover:bg-slate-800'
+                }`}
+              >
+                {text.confirmLeaveGo}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
