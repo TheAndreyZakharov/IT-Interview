@@ -432,6 +432,24 @@ function getQuestionsForSelectedNode(
   )
 }
 
+function getQuestionsForSelectedIds(
+  selectedIds: string[],
+  questions: ParsedQuestion[]
+) {
+  if (selectedIds.length === 0) {
+    return []
+  }
+
+  const selectedSet = new Set(selectedIds)
+
+  return questions.filter(
+    (question) =>
+      question.headingIds.some((id) => selectedSet.has(id)) ||
+      selectedSet.has(question.topicId) ||
+      selectedSet.has(question.subtopicId)
+  )
+}
+
 type SharedPageProps = {
   interfaceLanguage: Language
   bankLanguage: Language
@@ -774,7 +792,7 @@ function MenuPage({
               isDark ? 'text-slate-400' : 'text-slate-500'
             }`}
           >
-            {text.selectedLanguage}: {' '}
+            {text.selectedLanguage}:{' '}
             <span className={isDark ? 'text-slate-200' : 'text-slate-700'}>
               {selectedLanguageName}
             </span>
@@ -828,6 +846,11 @@ function MarathonPage({
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
 
+  const selectedQuestionsCount = useMemo(
+    () => getQuestionsForSelectedIds(selectedIds, content.questions).length,
+    [selectedIds, content.questions]
+  )
+
   function toggleNode(node: TocFlatNode) {
     const idsToChange = [node.id, ...node.childrenIds]
     const shouldSelect = !selectedSet.has(node.id)
@@ -850,16 +873,11 @@ function MarathonPage({
   }
 
   function startSelectedMarathon() {
-    if (selectedIds.length === 0) {
+    const filtered = getQuestionsForSelectedIds(selectedIds, content.questions)
+
+    if (filtered.length === 0) {
       return
     }
-
-    const filtered = content.questions.filter(
-      (question) =>
-        question.headingIds.some((id) => selectedSet.has(id)) ||
-        selectedSet.has(question.topicId) ||
-        selectedSet.has(question.subtopicId)
-    )
 
     setQuestions(shuffleArray(filtered))
     setCurrentIndex(0)
@@ -891,17 +909,33 @@ function MarathonPage({
         />
 
         {isSelectorOpen ? (
-          <TopicSelectorPanel
-            theme={theme}
-            text={text}
-            tocTree={content.tocTree}
-            tocFlat={content.tocFlat}
-            selectedIds={selectedIds}
-            onToggleNode={toggleNode}
-            onSelectAll={() => setSelectedIds(content.tocFlat.map((item) => item.id))}
-            onClearAll={() => setSelectedIds([])}
-            onStart={startSelectedMarathon}
-          />
+          <>
+            <div className="mt-6">
+              <Link
+                to="/menu"
+                className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+                  isDark
+                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                ← {text.backToModes}
+              </Link>
+            </div>
+
+            <TopicSelectorPanel
+              theme={theme}
+              text={text}
+              tocTree={content.tocTree}
+              tocFlat={content.tocFlat}
+              selectedIds={selectedIds}
+              selectedQuestionsCount={selectedQuestionsCount}
+              onToggleNode={toggleNode}
+              onSelectAll={() => setSelectedIds(content.tocFlat.map((item) => item.id))}
+              onClearAll={() => setSelectedIds([])}
+              onStart={startSelectedMarathon}
+            />
+          </>
         ) : (
           <QuestionMarathonLayout
             key={shuffleSeed}
@@ -1335,6 +1369,7 @@ type TopicSelectorPanelProps = {
   tocTree: TocNode[]
   tocFlat: TocFlatNode[]
   selectedIds: string[]
+  selectedQuestionsCount: number
   onToggleNode: (node: TocFlatNode) => void
   onSelectAll: () => void
   onClearAll: () => void
@@ -1347,6 +1382,7 @@ function TopicSelectorPanel({
   tocTree,
   tocFlat,
   selectedIds,
+  selectedQuestionsCount,
   onToggleNode,
   onSelectAll,
   onClearAll,
@@ -1361,109 +1397,110 @@ function TopicSelectorPanel({
 
   return (
     <section className="mt-10">
-      <div
-        className={`rounded-3xl border p-6 ${
-          isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
-        }`}
-      >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold">{text.chooseTopicsTitle}</h1>
-            <p
-              className={`mt-3 max-w-3xl ${
-                isDark ? 'text-slate-300' : 'text-slate-600'
-              }`}
-            >
-              {text.chooseTopicsHint}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/menu"
-              className={`inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                  : 'border-slate-300 bg-white hover:bg-slate-50'
-              }`}
-            >
-              {text.backToModes}
-            </Link>
-            <button
-              type="button"
-              onClick={onSelectAll}
-              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                  : 'border-slate-300 bg-white hover:bg-slate-50'
-              }`}
-            >
-              {text.selectAll}
-            </button>
-            <button
-              type="button"
-              onClick={onClearAll}
-              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                  : 'border-slate-300 bg-white hover:bg-slate-50'
-              }`}
-            >
-              {text.clearAll}
-            </button>
-            <button
-              type="button"
-              onClick={onStart}
-              className={`rounded-2xl px-5 py-2 text-sm font-semibold transition ${
-                isDark
-                  ? 'bg-white text-slate-950 hover:bg-slate-100'
-                  : 'bg-slate-950 text-white hover:bg-slate-800'
-              }`}
-            >
-              {text.startMarathon}
-            </button>
-          </div>
-        </div>
-
-        <div
-          className={`mt-6 inline-flex rounded-2xl border px-4 py-2 text-sm ${
-            isDark
-              ? 'border-white/10 bg-black/10 text-slate-300'
-              : 'border-slate-200 bg-slate-50 text-slate-600'
+      <div className="mx-auto max-w-3xl text-center">
+        <h1 className="text-3xl font-semibold">{text.chooseTopicsTitle}</h1>
+        <p
+          className={`mt-4 text-lg leading-8 ${
+            isDark ? 'text-slate-300' : 'text-slate-600'
           }`}
         >
-          {text.selectedItems}: {selectedIds.length}
-        </div>
+          {text.chooseTopicsHint}
+        </p>
+      </div>
 
-        {tocTree.length === 0 ? (
-          <p className={`mt-8 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-            {text.noQuestionsForSelection}
-          </p>
-        ) : (
-          <div className="mt-8 space-y-3">
-            {tocTree.map((node) => (
-              <TopicTreeNode
-                key={node.id}
-                node={node}
-                flatMap={flatMap}
-                selectedSet={selectedSet}
-                onToggleNode={onToggleNode}
-                theme={theme}
-              />
-            ))}
-          </div>
-        )}
-
-        {selectedIds.length === 0 && (
-          <p
-            className={`mt-6 text-sm ${
-              isDark ? 'text-slate-400' : 'text-slate-500'
+      <div
+        className={`sticky top-4 z-40 mt-8 rounded-3xl border p-4 backdrop-blur ${
+          isDark
+            ? 'border-white/10 bg-slate-950/92'
+            : 'border-slate-200 bg-white/92'
+        }`}
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            className={`min-w-0 flex-1 rounded-2xl border px-4 py-3 text-sm ${
+              isDark
+                ? 'border-white/10 bg-black/10 text-slate-300'
+                : 'border-slate-200 bg-slate-50 text-slate-600'
             }`}
           >
-            {text.nothingSelected}
-          </p>
-        )}
+            <span className="font-medium">{text.selectedItems}:</span>{' '}
+            <span className={isDark ? 'text-white' : 'text-slate-900'}>
+              {selectedIds.length}
+            </span>
+            <span className="mx-2">·</span>
+            <span className="font-medium">{text.totalQuestions}:</span>{' '}
+            <span className={isDark ? 'text-white' : 'text-slate-900'}>
+              {selectedQuestionsCount}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onSelectAll}
+            className={`shrink-0 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+              isDark
+                ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                : 'border-slate-300 bg-white hover:bg-slate-50'
+            }`}
+          >
+            {text.selectAll}
+          </button>
+
+          <button
+            type="button"
+            onClick={onClearAll}
+            className={`shrink-0 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+              isDark
+                ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                : 'border-slate-300 bg-white hover:bg-slate-50'
+            }`}
+          >
+            {text.clearAll}
+          </button>
+
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={selectedQuestionsCount === 0}
+            className={`shrink-0 rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              isDark
+                ? 'bg-white text-slate-950 hover:bg-slate-100'
+                : 'bg-slate-950 text-white hover:bg-slate-800'
+            }`}
+          >
+            {text.startMarathon}
+          </button>
+        </div>
       </div>
+
+      {tocTree.length === 0 ? (
+        <p className={`mt-8 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+          {text.noQuestionsForSelection}
+        </p>
+      ) : (
+        <div className="mt-8 space-y-3">
+          {tocTree.map((node) => (
+            <TopicTreeNode
+              key={node.id}
+              node={node}
+              flatMap={flatMap}
+              selectedSet={selectedSet}
+              onToggleNode={onToggleNode}
+              theme={theme}
+            />
+          ))}
+        </div>
+      )}
+
+      {selectedIds.length === 0 && (
+        <p
+          className={`mt-6 text-sm ${
+            isDark ? 'text-slate-400' : 'text-slate-500'
+          }`}
+        >
+          {text.nothingSelected}
+        </p>
+      )}
     </section>
   )
 }
