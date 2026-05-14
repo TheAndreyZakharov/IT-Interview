@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Link,
   Navigate,
@@ -92,7 +86,6 @@ type ContentData = {
 
 type Language = 'ru' | 'en'
 type ThemeMode = 'light' | 'dark'
-type OverviewMode = 'questions' | 'answers'
 
 type Dictionary = {
   siteTitle: string
@@ -109,16 +102,11 @@ type Dictionary = {
   totalAnswers: string
   totalHeadings: string
   selectedLanguage: string
-  unavailableBadge: string
-  unavailableAnswersMode: string
   themeLight: string
   themeDark: string
   menuTitle: string
   menuSubtitle: string
   backHome: string
-  back: string
-  modeLabel: string
-  placeholderSection: string
   backToModes: string
   noAnswerYet: string
   answersSoon: string
@@ -141,7 +129,6 @@ type Dictionary = {
   noQuestionsForSelection: string
   closeSelection: string
   shuffleAgain: string
-  leaveMarathonConfirm: string
   confirmLeaveTitle: string
   confirmLeaveText: string
   confirmLeaveStay: string
@@ -149,44 +136,20 @@ type Dictionary = {
   showContents: string
   hideContents: string
   contents: string
-  questionsListTitle: string
-  answersListTitle: string
-  stickyContext: string
+  currentSection: string
   noContentAvailable: string
-  menuCards: {
-    allMarathon: { title: string; text: string; cta: string }
-    customMarathon: { title: string; text: string; cta: string }
-    questionsOverview: { title: string; text: string; cta: string }
-    answersOverview: { title: string; text: string; cta: string }
-  }
-  placeholderTitle: string
-  placeholderText: string
-  comingSoon: string
+  marathonTitle: string
+  marathonText: string
+  overviewTitle: string
+  overviewText: string
+  open: string
+  answer: string
 }
 
 type LanguageStats = {
   questions: number
   answers: number
   headings: number
-}
-
-type OverviewHeadingBlock = {
-  key: string
-  type: 'topic' | 'subtopic'
-  title: string
-  nodeId: string
-  level: number
-  trail: string[]
-}
-
-type OverviewQuestionEntry = {
-  key: string
-  question: ParsedQuestion
-  topicTitle: string
-  subtopicTrail: string[]
-  topicId: string
-  subtopicIds: string[]
-  headings: OverviewHeadingBlock[]
 }
 
 const EMPTY_LANGUAGE_STATS: LanguageStats = {
@@ -207,7 +170,7 @@ const TEXT: Record<Language, Dictionary> = {
     madeByLabel: 'Сделано',
     heroTitle: 'Подготовка к IT-собеседованиям в одном месте',
     heroSubtitle:
-      'На этом сайте собрана большая база вопросов для подготовки к IT-собеседованиям на русском и английском языках. Здесь будут марафоны, оглавления, режимы просмотра вопросов и ответов и удобная навигация по темам.',
+      'На этом сайте собрана большая база вопросов для подготовки к IT-собеседованиям на русском и английском языках. Здесь есть марафон по вопросам, оглавление, ответы и удобная навигация по темам.',
     languageTitle: 'Выберите язык базы',
     languageHint:
       'Язык интерфейса определяется автоматически по языку браузера, но его можно переключить вручную. Для начала работы просто нажмите на одну из карточек языка ниже.',
@@ -220,16 +183,11 @@ const TEXT: Record<Language, Dictionary> = {
     totalAnswers: 'Количество ответов',
     totalHeadings: 'Количество тем и подтем',
     selectedLanguage: 'Выбранный язык базы',
-    unavailableBadge: 'Недоступно',
-    unavailableAnswersMode: 'Для английской базы этот режим пока недоступен',
     themeLight: 'Светлая',
     themeDark: 'Тёмная',
     menuTitle: 'Выберите режим',
     menuSubtitle: 'Ниже доступны основные сценарии работы с базой.',
     backHome: 'На главный экран',
-    back: 'Назад',
-    modeLabel: 'Режимы работы',
-    placeholderSection: 'Раздел',
     backToModes: 'Назад к выбору режима',
     noAnswerYet: 'Для этого вопроса ответ пока не добавлен.',
     answersSoon: 'Ответы скоро появятся.',
@@ -244,17 +202,15 @@ const TEXT: Record<Language, Dictionary> = {
     randomModeHint: 'Вопросы перемешаны в случайном порядке.',
     chooseTopicsTitle: 'Выберите темы и подтемы',
     chooseTopicsHint:
-      'Отметьте нужные пункты, затем начните марафон только по выбранным разделам.',
+      'Отметьте нужные пункты или выберите всё, затем начните марафон по выбранным разделам.',
     selectAll: 'Выбрать всё',
     clearAll: 'Очистить всё',
     startMarathon: 'Начать марафон',
     selectedItems: 'Выбрано пунктов',
     nothingSelected: 'Сначала выберите хотя бы один пункт.',
     noQuestionsForSelection: 'По текущему выбору вопросы не найдены.',
-    closeSelection: 'Закрыть выбор',
+    closeSelection: 'Изменить выбор',
     shuffleAgain: 'Перемешать заново',
-    leaveMarathonConfirm:
-      'Вы сейчас находитесь в марафоне. Если перейти на главный экран, текущий прогресс на этой странице сбросится. Перейти?',
     confirmLeaveTitle: 'Выйти на главный экран?',
     confirmLeaveText:
       'Вы сейчас находитесь в марафоне. Если перейти на главный экран, текущий прогресс на этой странице сбросится.',
@@ -263,43 +219,23 @@ const TEXT: Record<Language, Dictionary> = {
     showContents: 'Показать содержание',
     hideContents: 'Скрыть содержание',
     contents: 'Содержание',
-    questionsListTitle: 'Оглавление и вопросы',
-    answersListTitle: 'Оглавление, вопросы и ответы',
-    stickyContext: 'Текущий раздел',
+    currentSection: 'Текущий раздел',
     noContentAvailable: 'Содержимое пока недоступно.',
-    menuCards: {
-      allMarathon: {
-        title: 'Марафон по всем вопросам',
-        text: 'Случайный проход по всем вопросам выбранной базы.',
-        cta: 'Открыть',
-      },
-      customMarathon: {
-        title: 'Марафон по выбранным темам',
-        text: 'Сначала выбираете темы и подтемы, затем проходите карточки только по ним.',
-        cta: 'Открыть',
-      },
-      questionsOverview: {
-        title: 'Оглавление и вопросы',
-        text: 'Слева содержание, справа все вопросы по темам.',
-        cta: 'Открыть',
-      },
-      answersOverview: {
-        title: 'Оглавление, вопросы и ответы',
-        text: 'Слева содержание, справа вопросы и доступные ответы.',
-        cta: 'Открыть',
-      },
-    },
-    placeholderTitle: 'Раздел в разработке',
-    placeholderText:
-      'Эта страница пока пустая. На следующем этапе сюда добавим реальный функционал.',
-    comingSoon: 'Скоро здесь появится содержимое выбранного режима.',
+    marathonTitle: 'Марафон по вопросам',
+    marathonText:
+      'Сначала выберите все темы или конкретные разделы, затем проходите вопросы в случайном порядке.',
+    overviewTitle: 'Оглавление и вопросы',
+    overviewText:
+      'Слева содержание, справа вопросы выбранной темы или подтемы с раскрывающимися ответами.',
+    open: 'Открыть',
+    answer: 'Ответ',
   },
   en: {
     siteTitle: 'IT INTERVIEW',
     madeByLabel: 'Made by',
     heroTitle: 'Prepare for IT interviews in one place',
     heroSubtitle:
-      'This site contains a large question bank for IT interview preparation in Russian and English. It will include marathons, table-of-contents views, question and answer modes, and convenient topic navigation.',
+      'This site contains a large question bank for IT interview preparation in Russian and English. It includes a question marathon, contents, answers, and convenient topic navigation.',
     languageTitle: 'Choose the question bank language',
     languageHint:
       'The interface language is selected automatically from the browser language, but you can switch it manually. To begin, just click one of the language cards below.',
@@ -312,16 +248,11 @@ const TEXT: Record<Language, Dictionary> = {
     totalAnswers: 'Answer count',
     totalHeadings: 'Topics and subtopics',
     selectedLanguage: 'Selected question bank language',
-    unavailableBadge: 'Unavailable',
-    unavailableAnswersMode: 'This mode is not available for the English bank yet',
     themeLight: 'Light',
     themeDark: 'Dark',
     menuTitle: 'Choose a mode',
     menuSubtitle: 'Below are the main ways to work with the question bank.',
     backHome: 'Back to home',
-    back: 'Back',
-    modeLabel: 'Modes',
-    placeholderSection: 'Section',
     backToModes: 'Back to mode selection',
     noAnswerYet: 'There is no answer for this question yet.',
     answersSoon: 'Answers will appear soon.',
@@ -336,17 +267,15 @@ const TEXT: Record<Language, Dictionary> = {
     randomModeHint: 'Questions are shuffled randomly.',
     chooseTopicsTitle: 'Choose topics and subtopics',
     chooseTopicsHint:
-      'Select the needed items and start the marathon only for them.',
+      'Select the needed items or choose everything, then start the marathon for the selected sections.',
     selectAll: 'Select all',
     clearAll: 'Clear all',
     startMarathon: 'Start marathon',
     selectedItems: 'Selected items',
     nothingSelected: 'Select at least one item first.',
     noQuestionsForSelection: 'No questions found for the current selection.',
-    closeSelection: 'Close selection',
+    closeSelection: 'Change selection',
     shuffleAgain: 'Shuffle again',
-    leaveMarathonConfirm:
-      'You are currently in a marathon. If you go to the home page, the current progress on this page will be reset. Continue?',
     confirmLeaveTitle: 'Go to home page?',
     confirmLeaveText:
       'You are currently in a marathon. If you go to the home page, the current progress on this page will be reset.',
@@ -355,36 +284,16 @@ const TEXT: Record<Language, Dictionary> = {
     showContents: 'Show contents',
     hideContents: 'Hide contents',
     contents: 'Contents',
-    questionsListTitle: 'Contents and questions',
-    answersListTitle: 'Contents, questions, and answers',
-    stickyContext: 'Current section',
+    currentSection: 'Current section',
     noContentAvailable: 'Content is not available yet.',
-    menuCards: {
-      allMarathon: {
-        title: 'Marathon for all questions',
-        text: 'A random run through all questions in the selected bank.',
-        cta: 'Open',
-      },
-      customMarathon: {
-        title: 'Marathon by selected topics',
-        text: 'First choose topics and subtopics, then go through cards only for them.',
-        cta: 'Open',
-      },
-      questionsOverview: {
-        title: 'Contents and questions',
-        text: 'Contents on the left, all questions on the right.',
-        cta: 'Open',
-      },
-      answersOverview: {
-        title: 'Contents, questions, and answers',
-        text: 'Contents on the left, questions and available answers on the right.',
-        cta: 'Open',
-      },
-    },
-    placeholderTitle: 'Section under construction',
-    placeholderText:
-      'This page is empty for now. On the next step we will add the actual functionality here.',
-    comingSoon: 'The selected mode content will appear here soon.',
+    marathonTitle: 'Question marathon',
+    marathonText:
+      'First choose all topics or specific sections, then go through questions in random order.',
+    overviewTitle: 'Contents and questions',
+    overviewText:
+      'Contents on the left, selected topic or subtopic questions with expandable answers on the right.',
+    open: 'Open',
+    answer: 'Answer',
   },
 }
 
@@ -435,9 +344,7 @@ function getContentForBankLanguage(
     return EMPTY_LANGUAGE_CONTENT
   }
 
-  return bankLanguage === 'ru'
-    ? data.byLanguage.RU
-    : data.byLanguage.EN
+  return bankLanguage === 'ru' ? data.byLanguage.RU : data.byLanguage.EN
 }
 
 function shuffleArray<T>(items: T[]) {
@@ -475,70 +382,7 @@ function getQuestionSubtopicTrail(question: ParsedQuestion, tocFlat: TocFlatNode
       : []
 }
 
-function buildOverviewEntries(
-  questions: ParsedQuestion[],
-  tocFlat: TocFlatNode[]
-): OverviewQuestionEntry[] {
-  const tocMap = new Map(tocFlat.map((item) => [item.id, item]))
-  const result: OverviewQuestionEntry[] = []
-
-  let previousTopicId = ''
-  let previousSubtopicKey = ''
-
-  for (const question of questions) {
-    const subtopicNodes = question.headingIds
-      .map((id) => tocMap.get(id))
-      .filter((node): node is TocFlatNode => Boolean(node))
-      .filter((node) => node.level >= 3)
-
-    const subtopicTrail = subtopicNodes.map((node) => node.title)
-    const subtopicIds = subtopicNodes.map((node) => node.id)
-    const subtopicKey = subtopicIds.join('::')
-
-    const headings: OverviewHeadingBlock[] = []
-
-    if (question.topicId !== previousTopicId) {
-      headings.push({
-        key: `topic-${question.topicId}`,
-        type: 'topic',
-        title: question.topicTitle,
-        nodeId: question.topicId,
-        level: 2,
-        trail: [],
-      })
-    }
-
-    if (subtopicKey && subtopicKey !== previousSubtopicKey) {
-      subtopicNodes.forEach((node, index) => {
-        headings.push({
-          key: `subtopic-${node.id}`,
-          type: 'subtopic',
-          title: node.title,
-          nodeId: node.id,
-          level: node.level,
-          trail: subtopicTrail.slice(0, index + 1),
-        })
-      })
-    }
-
-    result.push({
-      key: question.id,
-      question,
-      topicTitle: question.topicTitle,
-      subtopicTrail,
-      topicId: question.topicId,
-      subtopicIds,
-      headings,
-    })
-
-    previousTopicId = question.topicId
-    previousSubtopicKey = subtopicKey
-  }
-
-  return result
-}
-
-function getInitialOverviewSelectionId(tocFlat: TocFlatNode[]) {
+function getInitialSelectionId(tocFlat: TocFlatNode[]) {
   return tocFlat[0]?.id ?? ''
 }
 
@@ -570,6 +414,22 @@ function getNodeTitleTrail(nodeId: string, tocFlat: TocFlatNode[]) {
     .map((id) => tocMap.get(id))
     .filter((item): item is TocFlatNode => Boolean(item))
     .map((item) => item.title)
+}
+
+function getQuestionsForSelectedNode(
+  selectedId: string,
+  questions: ParsedQuestion[],
+  tocFlat: TocFlatNode[]
+) {
+  const selectedNodeData = getSelectedNodeWithDescendants(selectedId, tocFlat)
+
+  if (!selectedNodeData.node) {
+    return []
+  }
+
+  return questions.filter((question) =>
+    question.headingIds.some((id) => selectedNodeData.allowedIds.has(id))
+  )
 }
 
 type SharedPageProps = {
@@ -699,6 +559,7 @@ function App() {
           />
         }
       />
+
       <Route
         path="/menu"
         element={
@@ -708,52 +569,31 @@ function App() {
           />
         }
       />
+
       <Route
-        path="/marathon/all"
+        path="/marathon"
         element={
-          <AllMarathonPage
-            key={`all-${bankLanguage}`}
+          <MarathonPage
+            key={`marathon-${bankLanguage}`}
             {...sharedProps}
             contentData={contentData}
             onInterfaceLanguageChange={setInterfaceLanguage}
           />
         }
       />
+
       <Route
-        path="/marathon/custom"
-        element={
-          <CustomMarathonPage
-            key={`custom-${bankLanguage}`}
-            {...sharedProps}
-            contentData={contentData}
-            onInterfaceLanguageChange={setInterfaceLanguage}
-          />
-        }
-      />
-      <Route
-        path="/overview/questions"
+        path="/overview"
         element={
           <OverviewPage
-            key={`overview-questions-${bankLanguage}`}
+            key={`overview-${bankLanguage}`}
             {...sharedProps}
-            mode="questions"
             contentData={contentData}
             onInterfaceLanguageChange={setInterfaceLanguage}
           />
         }
       />
-      <Route
-        path="/overview/answers"
-        element={
-          <OverviewPage
-            key={`overview-answers-${bankLanguage}`}
-            {...sharedProps}
-            mode="answers"
-            contentData={contentData}
-            onInterfaceLanguageChange={setInterfaceLanguage}
-          />
-        }
-      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -897,7 +737,6 @@ function MenuPage({
 }: MenuPageProps) {
   const location = useLocation()
   const isDark = theme === 'dark'
-  const isAnswersModeUnavailable = bankLanguage === 'en'
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -926,7 +765,7 @@ function MenuPage({
                   isDark ? 'text-slate-400' : 'text-slate-500'
                 }`}
               >
-                {text.modeLabel}
+                {text.selectedLanguage}
               </p>
               <h1 className="mt-2 text-3xl font-semibold">{text.menuTitle}</h1>
               <p
@@ -967,34 +806,17 @@ function MenuPage({
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           <MenuCard
             theme={theme}
-            title={text.menuCards.allMarathon.title}
-            description={text.menuCards.allMarathon.text}
-            cta={text.menuCards.allMarathon.cta}
-            to="/marathon/all"
+            title={text.marathonTitle}
+            description={text.marathonText}
+            cta={text.open}
+            to="/marathon"
           />
           <MenuCard
             theme={theme}
-            title={text.menuCards.customMarathon.title}
-            description={text.menuCards.customMarathon.text}
-            cta={text.menuCards.customMarathon.cta}
-            to="/marathon/custom"
-          />
-          <MenuCard
-            theme={theme}
-            title={text.menuCards.questionsOverview.title}
-            description={text.menuCards.questionsOverview.text}
-            cta={text.menuCards.questionsOverview.cta}
-            to="/overview/questions"
-          />
-          <MenuCard
-            theme={theme}
-            title={text.menuCards.answersOverview.title}
-            description={text.menuCards.answersOverview.text}
-            cta={text.menuCards.answersOverview.cta}
-            to="/overview/answers"
-            disabled={isAnswersModeUnavailable}
-            disabledLabel={text.unavailableBadge}
-            disabledOverlayText={text.unavailableAnswersMode}
+            title={text.overviewTitle}
+            description={text.overviewText}
+            cta={text.open}
+            to="/overview"
           />
         </div>
       </div>
@@ -1002,12 +824,12 @@ function MenuPage({
   )
 }
 
-type AllMarathonPageProps = SharedPageProps & {
+type MarathonPageProps = SharedPageProps & {
   contentData: ContentData | null
   onInterfaceLanguageChange: (language: Language) => void
 }
 
-function AllMarathonPage({
+function MarathonPage({
   interfaceLanguage,
   bankLanguage,
   theme,
@@ -1015,94 +837,7 @@ function AllMarathonPage({
   text,
   contentData,
   onInterfaceLanguageChange,
-}: AllMarathonPageProps) {
-  const content = useMemo(
-    () => getContentForBankLanguage(contentData, bankLanguage),
-    [contentData, bankLanguage]
-  )
-  const [shuffleSeed, setShuffleSeed] = useState(0)
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isAnswerOpen, setIsAnswerOpen] = useState(false)
-  const isDark = theme === 'dark'
-
-  const questions = useMemo(() => {
-    void shuffleSeed
-    return shuffleArray(content.questions)
-  }, [content.questions, shuffleSeed])
-
-  const currentQuestion = questions[currentIndex] ?? null
-
-  return (
-    <main
-      className={`page-fade min-h-screen ${
-        isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
-      }`}
-    >
-      <div className="mx-auto max-w-7xl px-6 py-8">
-        <SiteHeader
-          interfaceLanguage={interfaceLanguage}
-          theme={theme}
-          onToggleTheme={onToggleTheme}
-          text={text}
-          onInterfaceLanguageChange={onInterfaceLanguageChange}
-        />
-
-        <QuestionMarathonLayout
-          theme={theme}
-          text={text}
-          title={text.menuCards.allMarathon.title}
-          subtitle={text.randomModeHint}
-          questions={questions}
-          tocFlat={content.tocFlat}
-          currentIndex={currentIndex}
-          currentQuestion={currentQuestion}
-          isAnswerOpen={isAnswerOpen}
-          onToggleAnswer={() => setIsAnswerOpen((prev) => !prev)}
-          onPrev={() => {
-            setCurrentIndex((prev) => Math.max(prev - 1, 0))
-            setIsAnswerOpen(false)
-          }}
-          onNext={() => {
-            setCurrentIndex((prev) => Math.min(prev + 1, questions.length - 1))
-            setIsAnswerOpen(false)
-          }}
-          extraAction={
-            <button
-              type="button"
-              onClick={() => {
-                setShuffleSeed((prev) => prev + 1)
-                setCurrentIndex(0)
-                setIsAnswerOpen(false)
-              }}
-              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                  : 'border-slate-300 bg-white hover:bg-slate-50'
-              }`}
-            >
-              {text.shuffleAgain}
-            </button>
-          }
-        />
-      </div>
-    </main>
-  )
-}
-
-type CustomMarathonPageProps = SharedPageProps & {
-  contentData: ContentData | null
-  onInterfaceLanguageChange: (language: Language) => void
-}
-
-function CustomMarathonPage({
-  interfaceLanguage,
-  bankLanguage,
-  theme,
-  onToggleTheme,
-  text,
-  contentData,
-  onInterfaceLanguageChange,
-}: CustomMarathonPageProps) {
+}: MarathonPageProps) {
   const content = useMemo(
     () => getContentForBankLanguage(contentData, bankLanguage),
     [contentData, bankLanguage]
@@ -1112,6 +847,7 @@ function CustomMarathonPage({
   const [questions, setQuestions] = useState<ParsedQuestion[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnswerOpen, setIsAnswerOpen] = useState(false)
+  const [shuffleSeed, setShuffleSeed] = useState(0)
   const isDark = theme === 'dark'
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
@@ -1155,6 +891,13 @@ function CustomMarathonPage({
     setIsSelectorOpen(false)
   }
 
+  function reshuffleCurrentQuestions() {
+    setQuestions((prev) => shuffleArray(prev))
+    setShuffleSeed((prev) => prev + 1)
+    setCurrentIndex(0)
+    setIsAnswerOpen(false)
+  }
+
   const currentQuestion = questions[currentIndex] ?? null
 
   return (
@@ -1186,10 +929,11 @@ function CustomMarathonPage({
           />
         ) : (
           <QuestionMarathonLayout
+            key={shuffleSeed}
             theme={theme}
             text={text}
-            title={text.menuCards.customMarathon.title}
-            subtitle={`${text.selectedItems}: ${selectedIds.length}`}
+            title={text.marathonTitle}
+            subtitle={`${text.selectedItems}: ${selectedIds.length}. ${text.randomModeHint}`}
             questions={questions}
             tocFlat={content.tocFlat}
             currentIndex={currentIndex}
@@ -1205,17 +949,31 @@ function CustomMarathonPage({
               setIsAnswerOpen(false)
             }}
             extraAction={
-              <button
-                type="button"
-                onClick={() => setIsSelectorOpen(true)}
-                className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                  isDark
-                    ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                    : 'border-slate-300 bg-white hover:bg-slate-50'
-                }`}
-              >
-                {text.closeSelection}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={reshuffleCurrentQuestions}
+                  className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                    isDark
+                      ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                      : 'border-slate-300 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  {text.shuffleAgain}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSelectorOpen(true)}
+                  className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                    isDark
+                      ? 'border-white/10 bg-white/5 hover:bg-white/10'
+                      : 'border-slate-300 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  {text.closeSelection}
+                </button>
+              </>
             }
           />
         )}
@@ -1225,7 +983,6 @@ function CustomMarathonPage({
 }
 
 type OverviewPageProps = SharedPageProps & {
-  mode: OverviewMode
   contentData: ContentData | null
   onInterfaceLanguageChange: (language: Language) => void
 }
@@ -1236,7 +993,6 @@ function OverviewPage({
   theme,
   onToggleTheme,
   text,
-  mode,
   contentData,
   onInterfaceLanguageChange,
 }: OverviewPageProps) {
@@ -1247,72 +1003,14 @@ function OverviewPage({
   const isDark = theme === 'dark'
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [selectedNodeId, setSelectedNodeId] = useState('')
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
-  const elementRefs = useRef<Record<string, HTMLDivElement | null>>({})
-  const [activeHeadingId, setActiveHeadingId] = useState<string>('')
-
-  const entries = useMemo(
-    () => buildOverviewEntries(content.questions, content.tocFlat),
-    [content.questions, content.tocFlat]
-  )
 
   const resolvedSelectedNodeId = useMemo(() => {
     if (selectedNodeId) {
       return selectedNodeId
     }
 
-    return getInitialOverviewSelectionId(content.tocFlat)
+    return getInitialSelectionId(content.tocFlat)
   }, [selectedNodeId, content.tocFlat])
-
-  const title =
-    mode === 'questions'
-      ? text.menuCards.questionsOverview.title
-      : text.menuCards.answersOverview.title
-
-  useEffect(() => {
-    if (mode !== 'questions') {
-      return
-    }
-
-    const container = scrollContainerRef.current
-    if (!container) {
-      return
-    }
-
-    function handleScroll() {
-      const currentContainer = scrollContainerRef.current
-      if (!currentContainer) {
-        return
-      }
-
-      const headingNodes = Object.entries(elementRefs.current)
-        .map(([id, element]) => ({ id, element }))
-        .filter(
-          (item): item is { id: string; element: HTMLDivElement } =>
-            Boolean(item.element)
-        )
-
-      if (headingNodes.length === 0) {
-        return
-      }
-
-      const scrollTop = currentContainer.scrollTop
-      const current = headingNodes
-        .filter(({ element }) => element.offsetTop <= scrollTop + 120)
-        .sort((a, b) => b.element.offsetTop - a.element.offsetTop)[0]
-
-      if (current && current.id !== activeHeadingId) {
-        setActiveHeadingId(current.id)
-      }
-    }
-
-    handleScroll()
-    container.addEventListener('scroll', handleScroll)
-
-    return () => {
-      container.removeEventListener('scroll', handleScroll)
-    }
-  }, [entries, activeHeadingId, mode])
 
   const selectedNodeData = useMemo(
     () => getSelectedNodeWithDescendants(resolvedSelectedNodeId, content.tocFlat),
@@ -1324,107 +1022,15 @@ function OverviewPage({
     [resolvedSelectedNodeId, content.tocFlat]
   )
 
-  const selectedQuestions = useMemo(() => {
-    if (mode !== 'answers') {
-      return []
-    }
-
-    if (!selectedNodeData.node) {
-      return []
-    }
-
-    return content.questions.filter((question) =>
-      question.headingIds.some((id) => selectedNodeData.allowedIds.has(id))
-    )
-  }, [mode, content.questions, selectedNodeData])
-
-  function scrollToHeading(id: string) {
-    if (mode === 'answers') {
-      setSelectedNodeId(id)
-      return
-    }
-
-    const container = scrollContainerRef.current
-    const target = elementRefs.current[id]
-
-    if (!container || !target) {
-      return
-    }
-
-    container.scrollTo({
-      top: Math.max(target.offsetTop - 88, 0),
-      behavior: 'smooth',
-    })
-    setActiveHeadingId(id)
-  }
-
-  const sidebarActiveId = mode === 'answers' ? resolvedSelectedNodeId : activeHeadingId
-
-  if (mode === 'answers' && bankLanguage === 'en') {
-    return (
-      <main
-        className={`page-fade min-h-screen ${
-          isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'
-        }`}
-      >
-        <div className="mx-auto max-w-7xl px-6 py-8">
-          <SiteHeader
-            interfaceLanguage={interfaceLanguage}
-            theme={theme}
-            onToggleTheme={onToggleTheme}
-            text={text}
-            onInterfaceLanguageChange={onInterfaceLanguageChange}
-          />
-
-          <div className="mt-10 flex items-center justify-between gap-4">
-            <div>
-              <p
-                className={`text-sm uppercase tracking-[0.24em] ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
-                }`}
-              >
-                {text.modeLabel}
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
-            </div>
-
-            <Link
-              to="/menu"
-              className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {text.backToModes}
-            </Link>
-          </div>
-
-          <div
-            className={`mt-10 rounded-3xl border p-8 ${
-              isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
-            }`}
-          >
-            <div
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                isDark ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'
-              }`}
-            >
-              {text.unavailableBadge}
-            </div>
-
-            <p
-              className={`mt-5 text-lg leading-8 ${
-                isDark ? 'text-slate-300' : 'text-slate-600'
-              }`}
-            >
-              {text.unavailableAnswersMode}
-            </p>
-          </div>
-        </div>
-      </main>
-    )
-  }
+  const selectedQuestions = useMemo(
+    () =>
+      getQuestionsForSelectedNode(
+        resolvedSelectedNodeId,
+        content.questions,
+        content.tocFlat
+      ),
+    [resolvedSelectedNodeId, content.questions, content.tocFlat]
+  )
 
   return (
     <main
@@ -1448,9 +1054,9 @@ function OverviewPage({
                 isDark ? 'text-slate-400' : 'text-slate-500'
               }`}
             >
-              {text.modeLabel}
+              {text.contents}
             </p>
-            <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
+            <h1 className="mt-2 text-3xl font-semibold">{text.overviewTitle}</h1>
           </div>
 
           <div className="flex flex-wrap gap-3">
@@ -1500,8 +1106,8 @@ function OverviewPage({
                 <div className="h-[calc(100%-68px)] overflow-y-auto px-4 py-4">
                   <OverviewTocTree
                     nodes={content.tocTree}
-                    activeHeadingId={sidebarActiveId}
-                    onSelect={scrollToHeading}
+                    activeHeadingId={resolvedSelectedNodeId}
+                    onSelect={setSelectedNodeId}
                     theme={theme}
                   />
                 </div>
@@ -1510,123 +1116,91 @@ function OverviewPage({
           )}
 
           <section className={`${isSidebarOpen ? 'min-w-0 flex-1' : 'mx-auto w-full max-w-5xl'}`}>
-            {mode === 'questions' ? (
-              <div
-                ref={scrollContainerRef}
-                className={`h-[calc(100vh-12rem)] overflow-y-auto rounded-3xl border px-6 py-6 ${
-                  isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
-                }`}
-              >
-                {entries.length === 0 ? (
+            <div
+              className={`rounded-3xl border px-6 py-6 ${
+                isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+              }`}
+            >
+              {!selectedNodeData.node ? (
+                <EmptyContentCard text={text} theme={theme} />
+              ) : (
+                <div className="space-y-6">
                   <div
-                    className={`rounded-3xl border p-8 ${
-                      isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+                    className={`sticky top-0 z-20 rounded-3xl border px-5 py-4 backdrop-blur ${
+                      isDark
+                        ? 'border-white/10 bg-slate-950/92'
+                        : 'border-slate-200 bg-white/92'
                     }`}
                   >
-                    <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
-                      {text.noContentAvailable}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-0">
-                    {entries.map((entry, index) => (
-                      <OverviewQuestionBlock
-                        key={entry.key}
-                        entry={entry}
-                        index={index}
-                        mode={mode}
-                        text={text}
-                        theme={theme}
-                        registerAnchor={(id, element) => {
-                          elementRefs.current[id] = element
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                className={`rounded-3xl border px-6 py-6 ${
-                  isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
-                }`}
-              >
-                {!selectedNodeData.node ? (
-                  <div
-                    className={`rounded-3xl border p-8 ${
-                      isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
-                    }`}
-                  >
-                    <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
-                      {text.noContentAvailable}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
                     <div
-                      className={`sticky top-0 z-20 rounded-3xl border px-5 py-4 backdrop-blur ${
-                        isDark
-                          ? 'border-white/10 bg-slate-950/92'
-                          : 'border-slate-200 bg-white/92'
+                      className={`text-xs uppercase tracking-[0.2em] ${
+                        isDark ? 'text-slate-400' : 'text-slate-500'
                       }`}
                     >
-                      <div
-                        className={`text-xs uppercase tracking-[0.2em] ${
-                          isDark ? 'text-slate-400' : 'text-slate-500'
-                        }`}
-                      >
-                        {text.stickyContext}
-                      </div>
-
-                      <div className="mt-3 space-y-2">
-                        {selectedTitleTrail.map((item, index) => (
-                          <div
-                            key={`${item}-${index}`}
-                            className={
-                              index === 0
-                                ? 'text-2xl font-semibold'
-                                : index === 1
-                                  ? 'text-lg font-semibold'
-                                  : 'text-sm font-semibold'
-                            }
-                          >
-                            {item}
-                          </div>
-                        ))}
-                      </div>
+                      {text.currentSection}
                     </div>
 
-                    {selectedQuestions.length === 0 ? (
-                      <div
-                        className={`rounded-3xl border p-8 ${
-                          isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
-                        }`}
-                      >
-                        <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
-                          {text.noContentAvailable}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {selectedQuestions.map((question, index) => (
-                          <OverviewAnswerSectionQuestionBlock
-                            key={question.id}
-                            question={question}
-                            index={index}
-                            text={text}
-                            theme={theme}
-                          />
-                        ))}
-                      </div>
-                    )}
+                    <div className="mt-3 space-y-2">
+                      {selectedTitleTrail.map((item, index) => (
+                        <div
+                          key={`${item}-${index}`}
+                          className={
+                            index === 0
+                              ? 'text-2xl font-semibold'
+                              : index === 1
+                                ? 'text-lg font-semibold'
+                                : 'text-sm font-semibold'
+                          }
+                        >
+                          {item}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {selectedQuestions.length === 0 ? (
+                    <EmptyContentCard text={text} theme={theme} />
+                  ) : (
+                    <div className="space-y-5">
+                      {selectedQuestions.map((question, index) => (
+                        <OverviewQuestionAnswerBlock
+                          key={question.id}
+                          question={question}
+                          index={index}
+                          text={text}
+                          theme={theme}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </section>
         </div>
       </div>
     </main>
+  )
+}
+
+type EmptyContentCardProps = {
+  text: Dictionary
+  theme: ThemeMode
+}
+
+function EmptyContentCard({ text, theme }: EmptyContentCardProps) {
+  const isDark = theme === 'dark'
+
+  return (
+    <div
+      className={`rounded-3xl border p-8 ${
+        isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
+      }`}
+    >
+      <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>
+        {text.noContentAvailable}
+      </p>
+    </div>
   )
 }
 
@@ -1711,127 +1285,21 @@ function OverviewTocNode({
   )
 }
 
-type OverviewQuestionBlockProps = {
-  entry: OverviewQuestionEntry
-  index: number
-  mode: OverviewMode
-  text: Dictionary
-  theme: ThemeMode
-  registerAnchor: (id: string, element: HTMLDivElement | null) => void
-}
-
-function OverviewQuestionBlock({
-  entry,
-  index,
-  mode,
-  text,
-  theme,
-  registerAnchor,
-}: OverviewQuestionBlockProps) {
-  const isDark = theme === 'dark'
-
-  return (
-    <div>
-      {entry.headings.map((heading, headingIndex) => {
-        const stickyTop =
-          heading.type === 'topic'
-            ? 'top-0 z-30'
-            : heading.level === 3
-              ? 'top-[56px] z-20'
-              : 'top-[104px] z-10'
-
-        const titleClass =
-          heading.type === 'topic'
-            ? 'text-2xl font-semibold'
-            : heading.level === 3
-              ? 'text-lg font-semibold'
-              : 'text-sm font-semibold'
-
-        return (
-          <div
-            key={heading.key}
-            ref={(element) => registerAnchor(heading.nodeId, element)}
-            className={`sticky ${stickyTop} border-b px-4 py-3 backdrop-blur ${
-              isDark
-                ? 'border-white/10 bg-slate-950/92'
-                : 'border-slate-200 bg-white/92'
-            } ${headingIndex > 0 ? 'mt-0' : ''}`}
-          >
-            <div className={titleClass}>{heading.title}</div>
-          </div>
-        )
-      })}
-
-      <div className={`${mode === 'answers' ? 'py-6' : 'py-4'}`}>
-        {mode === 'answers' ? (
-          <div
-            className={`rounded-3xl border p-6 ${
-              isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
-            }`}
-          >
-            <div
-              className={`text-xs uppercase tracking-[0.2em] ${
-                isDark ? 'text-slate-400' : 'text-slate-500'
-              }`}
-            >
-              {text.questionOf} {index + 1}
-            </div>
-
-            <h3 className="mt-3 text-xl font-semibold leading-8">
-              {entry.question.text}
-            </h3>
-
-            <div
-              className={`my-5 border-t ${
-                isDark ? 'border-white/10' : 'border-slate-200'
-              }`}
-            />
-
-            <div
-              className={`leading-7 ${
-                isDark ? 'text-slate-200' : 'text-slate-700'
-              }`}
-            >
-              {entry.question.hasAnswer ? (
-                <FormattedAnswer text={entry.question.answer} />
-              ) : (
-                <p>{text.answersSoon}</p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div
-            className={`border-b pb-4 ${
-              isDark ? 'border-white/10' : 'border-slate-200'
-            }`}
-          >
-            <div className="flex gap-3">
-              <span className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                •
-              </span>
-              <div className="text-lg leading-8">{entry.question.text}</div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-type OverviewAnswerSectionQuestionBlockProps = {
+type OverviewQuestionAnswerBlockProps = {
   question: ParsedQuestion
   index: number
   text: Dictionary
   theme: ThemeMode
 }
 
-function OverviewAnswerSectionQuestionBlock({
+function OverviewQuestionAnswerBlock({
   question,
   index,
   text,
   theme,
-}: OverviewAnswerSectionQuestionBlockProps) {
+}: OverviewQuestionAnswerBlockProps) {
   const isDark = theme === 'dark'
+  const [isAnswerOpen, setIsAnswerOpen] = useState(false)
 
   return (
     <div
@@ -1849,21 +1317,42 @@ function OverviewAnswerSectionQuestionBlock({
 
       <h3 className="mt-3 text-xl font-semibold leading-8">{question.text}</h3>
 
-      <div
-        className={`my-5 border-t ${
-          isDark ? 'border-white/10' : 'border-slate-200'
+      <button
+        type="button"
+        onClick={() => setIsAnswerOpen((prev) => !prev)}
+        className={`mt-5 inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+          isDark
+            ? 'border-white/10 bg-white/5 hover:bg-white/10'
+            : 'border-slate-300 bg-white hover:bg-slate-50'
         }`}
-      />
-
-      <div
-        className={`leading-7 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}
       >
-        {question.hasAnswer ? (
-          <FormattedAnswer text={question.answer} />
-        ) : (
-          <p>{text.answersSoon}</p>
-        )}
-      </div>
+        <span className={`transition ${isAnswerOpen ? 'rotate-180' : ''}`}>⌄</span>
+        {isAnswerOpen ? text.hideAnswer : text.revealAnswer}
+      </button>
+
+      {isAnswerOpen && (
+        <div
+          className={`mt-5 rounded-2xl border p-5 leading-7 ${
+            isDark
+              ? 'border-white/10 bg-slate-900/70 text-slate-100'
+              : 'border-slate-200 bg-white text-slate-700'
+          }`}
+        >
+          <div
+            className={`mb-3 text-xs uppercase tracking-[0.2em] ${
+              isDark ? 'text-slate-400' : 'text-slate-500'
+            }`}
+          >
+            {text.answer}
+          </div>
+
+          {question.hasAnswer ? (
+            <FormattedAnswer text={question.answer} />
+          ) : (
+            <p>{text.answersSoon}</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -2044,7 +1533,11 @@ function TopicTreeNode({
         />
         <span
           className={`leading-7 ${
-            node.level === 2 ? 'text-lg font-semibold' : node.level === 3 ? 'font-medium' : ''
+            node.level === 2
+              ? 'text-lg font-semibold'
+              : node.level === 3
+                ? 'font-medium'
+                : ''
           }`}
         >
           {node.title}
@@ -2146,16 +1639,14 @@ function QuestionMarathonLayout({
             isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
           }`}
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div
-              className={`inline-flex rounded-2xl border px-4 py-2 text-sm ${
-                isDark
-                  ? 'border-white/10 bg-black/10 text-slate-300'
-                  : 'border-slate-200 bg-slate-50 text-slate-600'
-              }`}
-            >
-              {text.questionOf} {currentIndex + 1} / {questions.length}
-            </div>
+          <div
+            className={`inline-flex rounded-2xl border px-4 py-2 text-sm ${
+              isDark
+                ? 'border-white/10 bg-black/10 text-slate-300'
+                : 'border-slate-200 bg-slate-50 text-slate-600'
+            }`}
+          >
+            {text.questionOf} {currentIndex + 1} / {questions.length}
           </div>
 
           <div className="mt-6 space-y-4">
@@ -2213,7 +1704,7 @@ function QuestionMarathonLayout({
                 {currentQuestion.hasAnswer ? (
                   <FormattedAnswer text={currentQuestion.answer} />
                 ) : (
-                  <p>{text.noAnswerYet}</p>
+                  <p>{text.answersSoon}</p>
                 )}
               </div>
             )}
@@ -2304,7 +1795,7 @@ function SiteHeader({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
 
   function handleHomeClick() {
-    const isMarathonPage = location.pathname.startsWith('/marathon/')
+    const isMarathonPage = location.pathname.startsWith('/marathon')
 
     if (isMarathonPage) {
       setIsConfirmOpen(true)
@@ -2563,9 +2054,6 @@ type MenuCardProps = {
   description: string
   cta: string
   to: string
-  disabled?: boolean
-  disabledLabel?: string
-  disabledOverlayText?: string
 }
 
 function MenuCard({
@@ -2574,57 +2062,8 @@ function MenuCard({
   description,
   cta,
   to,
-  disabled = false,
-  disabledLabel,
-  disabledOverlayText,
 }: MenuCardProps) {
   const isDark = theme === 'dark'
-
-  if (disabled) {
-    return (
-      <div
-        className={`relative overflow-hidden rounded-3xl border p-6 shadow-sm ${
-          isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
-        }`}
-      >
-        <div className="pointer-events-none absolute inset-0 z-10 bg-slate-950/45 backdrop-blur-[1px]" />
-
-        <div className="absolute left-4 top-4 z-20">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              isDark ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'
-            }`}
-          >
-            {disabledLabel}
-          </span>
-        </div>
-
-        <div className="absolute inset-0 z-20 flex items-center justify-center p-6">
-          <div
-            className={`rounded-2xl px-4 py-3 text-center text-sm font-medium shadow-lg ${
-              isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'
-            }`}
-          >
-            {disabledOverlayText}
-          </div>
-        </div>
-
-        <div className="flex h-full flex-col justify-between gap-6 opacity-55">
-          <div>
-            <h2 className="text-2xl font-semibold">{title}</h2>
-            <p className={`mt-3 leading-7 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-              {description}
-            </p>
-          </div>
-
-          <div className="inline-flex items-center text-sm font-semibold">
-            {cta}
-            <span className="ml-2">→</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <Link
