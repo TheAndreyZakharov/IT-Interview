@@ -561,7 +561,6 @@ function App() {
         element={
           <MenuPage
             {...sharedProps}
-            onInterfaceLanguageChange={setInterfaceLanguage}
           />
         }
       />
@@ -573,7 +572,6 @@ function App() {
             key={`marathon-${bankLanguage}`}
             {...sharedProps}
             contentData={contentData}
-            onInterfaceLanguageChange={setInterfaceLanguage}
           />
         }
       />
@@ -585,7 +583,6 @@ function App() {
             key={`overview-${bankLanguage}`}
             {...sharedProps}
             contentData={contentData}
-            onInterfaceLanguageChange={setInterfaceLanguage}
           />
         }
       />
@@ -719,9 +716,7 @@ function HomePage({
   )
 }
 
-type MenuPageProps = SharedPageProps & {
-  onInterfaceLanguageChange: (language: Language) => void
-}
+type MenuPageProps = SharedPageProps 
 
 function MenuPage({
   interfaceLanguage,
@@ -729,7 +724,6 @@ function MenuPage({
   theme,
   onToggleTheme,
   text,
-  onInterfaceLanguageChange,
 }: MenuPageProps) {
   const location = useLocation()
   const isDark = theme === 'dark'
@@ -750,7 +744,6 @@ function MenuPage({
           theme={theme}
           onToggleTheme={onToggleTheme}
           text={text}
-          onInterfaceLanguageChange={onInterfaceLanguageChange}
         />
 
         <div className="mt-10 flex flex-col gap-4">
@@ -822,7 +815,6 @@ function MenuPage({
 
 type MarathonPageProps = SharedPageProps & {
   contentData: ContentData | null
-  onInterfaceLanguageChange: (language: Language) => void
 }
 
 function MarathonPage({
@@ -832,7 +824,6 @@ function MarathonPage({
   onToggleTheme,
   text,
   contentData,
-  onInterfaceLanguageChange,
 }: MarathonPageProps) {
   const content = useMemo(
     () => getContentForBankLanguage(contentData, bankLanguage),
@@ -908,7 +899,6 @@ function MarathonPage({
           theme={theme}
           onToggleTheme={onToggleTheme}
           text={text}
-          onInterfaceLanguageChange={onInterfaceLanguageChange}
         />
 
         {isSelectorOpen ? (
@@ -980,7 +970,6 @@ function MarathonPage({
 
 type OverviewPageProps = SharedPageProps & {
   contentData: ContentData | null
-  onInterfaceLanguageChange: (language: Language) => void
 }
 
 function OverviewPage({
@@ -990,7 +979,6 @@ function OverviewPage({
   onToggleTheme,
   text,
   contentData,
-  onInterfaceLanguageChange,
 }: OverviewPageProps) {
   const content = useMemo(
     () => getContentForBankLanguage(contentData, bankLanguage),
@@ -1040,7 +1028,6 @@ function OverviewPage({
           theme={theme}
           onToggleTheme={onToggleTheme}
           text={text}
-          onInterfaceLanguageChange={onInterfaceLanguageChange}
         />
 
         <div className="mt-10 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
