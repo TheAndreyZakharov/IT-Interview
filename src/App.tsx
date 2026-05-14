@@ -173,10 +173,12 @@ const TEXT: Record<Language, Dictionary> = {
       'На этом сайте собрана большая база вопросов для подготовки к IT-собеседованиям на русском и английском языках. Здесь есть марафон по вопросам, оглавление, ответы и удобная навигация по темам.',
     languageTitle: 'Выберите язык базы',
     languageHint:
-      'Вы выбираете язык базы, в которую хотите войти. Для начала работы просто нажмите на одну из карточек языка ниже.',    languageRu: 'Русский',
+      'Вы выбираете язык базы, в которую хотите войти. Для начала работы просто нажмите на одну из карточек языка ниже.',
+    languageRu: 'Русский',
     languageEn: 'English',
     chooseLanguageCardHint:
-      'После нажатия на карточку выбранный язык сохранится и будет использоваться на следующих страницах.',    updatedAt: 'Последнее обновление базы',
+      'После нажатия на карточку выбранный язык сохранится и будет использоваться на следующих страницах.',
+    updatedAt: 'Последнее обновление базы',
     totalQuestions: 'Количество вопросов',
     totalAnswers: 'Количество ответов',
     totalHeadings: 'Количество тем и подтем',
@@ -185,7 +187,7 @@ const TEXT: Record<Language, Dictionary> = {
     themeDark: 'Тёмная',
     menuTitle: 'Выберите режим',
     menuSubtitle: 'Ниже доступны основные сценарии работы с базой.',
-    backHome: 'На главный экран',
+    backHome: 'Назад на главный экран',
     backToModes: 'Назад к выбору режима',
     noAnswerYet: 'Для этого вопроса ответ пока не добавлен.',
     answersSoon: 'Ответы скоро появятся.',
@@ -236,10 +238,12 @@ const TEXT: Record<Language, Dictionary> = {
       'This site contains a large question bank for IT interview preparation in Russian and English. It includes a question marathon, contents, answers, and convenient topic navigation.',
     languageTitle: 'Choose the question bank language',
     languageHint:
-      'Choose the question bank language you want to enter. To begin, just click one of the language cards below.',    languageRu: 'Russian',
+      'Choose the question bank language you want to enter. To begin, just click one of the language cards below.',
+    languageRu: 'Russian',
     languageEn: 'English',
     chooseLanguageCardHint:
-      'After clicking a card, the selected question bank language will be saved and used on the next pages.',    updatedAt: 'Question bank last updated',
+      'After clicking a card, the selected question bank language will be saved and used on the next pages.',
+    updatedAt: 'Question bank last updated',
     totalQuestions: 'Question count',
     totalAnswers: 'Answer count',
     totalHeadings: 'Topics and subtopics',
@@ -248,7 +252,7 @@ const TEXT: Record<Language, Dictionary> = {
     themeDark: 'Dark',
     menuTitle: 'Choose a mode',
     menuSubtitle: 'Below are the main ways to work with the question bank.',
-    backHome: 'Back to home',
+    backHome: 'Back to home page',
     backToModes: 'Back to mode selection',
     noAnswerYet: 'There is no answer for this question yet.',
     answersSoon: 'Answers will appear soon.',
@@ -556,14 +560,7 @@ function App() {
         }
       />
 
-      <Route
-        path="/menu"
-        element={
-          <MenuPage
-            {...sharedProps}
-          />
-        }
-      />
+      <Route path="/menu" element={<MenuPage {...sharedProps} />} />
 
       <Route
         path="/marathon"
@@ -716,7 +713,7 @@ function HomePage({
   )
 }
 
-type MenuPageProps = SharedPageProps 
+type MenuPageProps = SharedPageProps
 
 function MenuPage({
   interfaceLanguage,
@@ -732,6 +729,8 @@ function MenuPage({
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [location.pathname])
 
+  const selectedLanguageName = bankLanguage === 'ru' ? text.languageRu : text.languageEn
+
   return (
     <main
       className={`page-fade min-h-screen ${
@@ -746,50 +745,40 @@ function MenuPage({
           text={text}
         />
 
-        <div className="mt-10 flex flex-col gap-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p
-                className={`text-sm uppercase tracking-[0.24em] ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
-                }`}
-              >
-                {text.selectedLanguage}
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold">{text.menuTitle}</h1>
-              <p
-                className={`mt-3 max-w-3xl ${
-                  isDark ? 'text-slate-300' : 'text-slate-600'
-                }`}
-              >
-                {text.menuSubtitle}
-              </p>
-            </div>
-
-            <Link
-              to="/"
-              className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {text.backHome}
-            </Link>
-          </div>
-
-          <div
-            className={`inline-flex w-fit items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${
+        <div className="mt-6">
+          <Link
+            to="/"
+            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
               isDark
-                ? 'border-white/10 bg-white/5 text-slate-300'
-                : 'border-slate-200 bg-white text-slate-600'
+                ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
             }`}
           >
-            <span className="font-medium">{text.selectedLanguage}:</span>
-            <span className={isDark ? 'text-white' : 'text-slate-900'}>
-              {bankLanguage === 'ru' ? text.languageRu : text.languageEn}
+            ← {text.backHome}
+          </Link>
+        </div>
+
+        <div className="mx-auto mt-10 max-w-3xl text-center">
+          <h1 className="text-3xl font-semibold">{text.menuTitle}</h1>
+
+          <p
+            className={`mt-4 text-lg leading-8 ${
+              isDark ? 'text-slate-300' : 'text-slate-600'
+            }`}
+          >
+            {text.menuSubtitle}
+          </p>
+
+          <p
+            className={`mt-2 text-sm ${
+              isDark ? 'text-slate-400' : 'text-slate-500'
+            }`}
+          >
+            {text.selectedLanguage}: {' '}
+            <span className={isDark ? 'text-slate-200' : 'text-slate-700'}>
+              {selectedLanguageName}
             </span>
-          </div>
+          </p>
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
