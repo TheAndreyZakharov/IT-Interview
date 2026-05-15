@@ -1,15 +1,22 @@
 .page-fade {
   animation: page-fade 420ms ease;
+  overflow: hidden;
+}
+
+@supports (overflow: clip) {
+  .page-fade {
+    overflow: clip;
+  }
 }
 
 @keyframes page-fade {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    clip-path: inset(14px 0 0 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
   }
 }
 
