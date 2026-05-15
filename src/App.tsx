@@ -2366,14 +2366,21 @@ function MiniStat({ label, value, theme }: MiniStatProps) {
 
   return (
     <div
-      className={`rounded-2xl p-3 ${
+      className={`flex min-h-[104px] flex-col items-center justify-center rounded-2xl p-3 text-center ${
         isDark ? 'bg-white/5 text-slate-200' : 'bg-white text-slate-900'
       }`}
     >
-      <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+      <div
+        className={`flex min-h-[32px] items-center justify-center text-center text-xs leading-4 ${
+          isDark ? 'text-slate-400' : 'text-slate-500'
+        }`}
+      >
         {label}
       </div>
-      <div className="mt-2 text-xl font-semibold">{value}</div>
+
+      <div className="mt-3 text-center text-xl font-semibold leading-none">
+        {value}
+      </div>
     </div>
   )
 }
