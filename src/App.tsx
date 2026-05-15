@@ -145,6 +145,7 @@ type Dictionary = {
   marathonText: string
   overviewTitle: string
   overviewText: string
+  overviewSubtitle: string
   open: string
   answer: string
 }
@@ -231,9 +232,11 @@ const TEXT: Record<Language, Dictionary> = {
     marathonTitle: 'Марафон по вопросам',
     marathonText:
       'Сначала выберите все темы или конкретные разделы, затем проходите вопросы в случайном порядке.',
-    overviewTitle: 'Оглавление и вопросы',
+    overviewTitle: 'Оглавление, вопросы и ответы',
     overviewText:
-      'Слева содержание, справа вопросы выбранной темы или подтемы с раскрывающимися ответами.',
+      'Откройте оглавление, выберите нужный раздел и изучайте вопросы с раскрывающимися ответами.',
+    overviewSubtitle:
+      'Слева доступна навигация по разделам, справа — вопросы выбранной темы и ответы к ним.',
     open: 'Открыть',
     answer: 'Ответ',
   },
@@ -300,9 +303,11 @@ const TEXT: Record<Language, Dictionary> = {
     marathonTitle: 'Question marathon',
     marathonText:
       'First choose all topics or specific sections, then go through questions in random order.',
-    overviewTitle: 'Contents and questions',
+    overviewTitle: 'Contents, questions and answers',
     overviewText:
-      'Contents on the left, selected topic or subtopic questions with expandable answers on the right.',
+      'Open the contents, choose a section, and study questions with expandable answers.',
+    overviewSubtitle:
+      'Navigation by sections is on the left, and selected topic questions with answers are on the right.',
     open: 'Open',
     answer: 'Answer',
   },
@@ -1100,75 +1105,99 @@ function OverviewPage({
           text={text}
         />
 
-        <div className="mt-10 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p
-              className={`text-sm uppercase tracking-[0.24em] ${
-                isDark ? 'text-slate-400' : 'text-slate-500'
-              }`}
-            >
-              {text.contents}
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold">{text.overviewTitle}</h1>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen((prev) => !prev)}
-              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                  : 'border-slate-300 bg-white hover:bg-slate-50'
-              }`}
-            >
-              {isSidebarOpen ? text.hideContents : text.showContents}
-            </button>
-
-            <Link
-              to="/menu"
-              className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
-                isDark
-                  ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {text.backToModes}
-            </Link>
-          </div>
+        <div className="mt-6">
+          <Link
+            to="/menu"
+            className={`inline-flex items-center justify-center rounded-2xl border px-5 py-3 text-sm font-medium transition ${
+              isDark
+                ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            ← {text.backToModes}
+          </Link>
         </div>
 
-        <div className={`mt-8 flex gap-6 ${isSidebarOpen ? 'xl:flex-row' : 'xl:flex-col'}`}>
-          {isSidebarOpen && (
-            <aside className="xl:sticky xl:top-6 xl:h-[calc(100vh-4rem)] xl:w-[42%] xl:max-w-[50%] xl:min-w-[320px] xl:flex-shrink-0">
+        <div className="mx-auto mt-10 max-w-3xl text-center">
+          <h1 className="text-3xl font-semibold">{text.overviewTitle}</h1>
+
+          <p
+            className={`mt-4 text-lg leading-8 ${
+              isDark ? 'text-slate-300' : 'text-slate-600'
+            }`}
+          >
+            {text.overviewSubtitle}
+          </p>
+        </div>
+
+        {!isSidebarOpen && (
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label={text.showContents}
+            title={text.showContents}
+            className={`fixed left-4 top-1/2 z-50 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border text-xl font-semibold shadow-lg transition hover:scale-105 ${
+              isDark
+                ? 'border-white/10 bg-slate-950/95 text-slate-200 hover:bg-white/10'
+                : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            ›
+          </button>
+        )}
+
+        <div className="mt-10 flex items-start gap-6 overflow-hidden">
+          <aside
+            className={`min-w-0 shrink-0 transition-all duration-300 ease-in-out ${
+              isSidebarOpen
+                ? 'w-full translate-x-0 opacity-100 lg:w-[46%] xl:max-w-[50%]'
+                : 'w-0 -translate-x-full opacity-0'
+            }`}
+            aria-hidden={!isSidebarOpen}
+          >
+            <div
+              className={`max-h-[70vh] overflow-hidden rounded-3xl border ${
+                isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+              }`}
+            >
               <div
-                className={`h-full overflow-hidden rounded-3xl border ${
-                  isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+                className={`flex items-center justify-between gap-4 border-b px-5 py-4 ${
+                  isDark ? 'border-white/10' : 'border-slate-200'
                 }`}
               >
-                <div
-                  className={`sticky top-0 z-20 border-b px-5 py-4 ${
+                <div className="min-w-0 text-lg font-semibold">{text.contents}</div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(false)}
+                  aria-label={text.hideContents}
+                  title={text.hideContents}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-lg font-semibold transition hover:scale-105 ${
                     isDark
-                      ? 'border-white/10 bg-slate-950/90'
-                      : 'border-slate-200 bg-white/90'
-                  } backdrop-blur`}
+                      ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
                 >
-                  <div className="text-lg font-semibold">{text.contents}</div>
-                </div>
-
-                <div className="h-[calc(100%-68px)] overflow-y-auto px-4 py-4">
-                  <OverviewTocTree
-                    nodes={content.tocTree}
-                    activeHeadingId={resolvedSelectedNodeId}
-                    onSelect={setSelectedNodeId}
-                    theme={theme}
-                  />
-                </div>
+                  ‹
+                </button>
               </div>
-            </aside>
-          )}
 
-          <section className={`${isSidebarOpen ? 'min-w-0 flex-1' : 'mx-auto w-full max-w-5xl'}`}>
+              <div className="max-h-[calc(70vh-73px)] overflow-y-auto px-4 py-4">
+                <OverviewTocTree
+                  nodes={content.tocTree}
+                  activeHeadingId={resolvedSelectedNodeId}
+                  onSelect={setSelectedNodeId}
+                  theme={theme}
+                />
+              </div>
+            </div>
+          </aside>
+
+          <section
+            className={`min-w-0 transition-all duration-300 ease-in-out ${
+              isSidebarOpen ? 'flex-1' : 'mx-auto w-full max-w-5xl flex-1'
+            }`}
+          >
             <div
               className={`rounded-3xl border px-6 py-6 ${
                 isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
@@ -1306,7 +1335,7 @@ function OverviewTocNode({
       <button
         type="button"
         onClick={() => onSelect(node.id)}
-        className={`w-full rounded-2xl px-3 py-2 text-left transition ${
+        className={`w-full whitespace-normal break-words rounded-2xl px-3 py-2 text-left transition ${
           isActive
             ? isDark
               ? 'bg-white text-slate-950'
@@ -1315,7 +1344,7 @@ function OverviewTocNode({
               ? 'text-slate-200 hover:bg-white/10'
               : 'text-slate-700 hover:bg-slate-100'
         } ${node.level === 2 ? 'font-semibold' : node.level === 3 ? 'font-medium' : 'text-sm'} ${
-          node.level === 4 ? 'ml-4' : node.level === 3 ? 'ml-2' : ''
+          node.level === 4 ? 'ml-4 max-w-[calc(100%-1rem)]' : node.level === 3 ? 'ml-2 max-w-[calc(100%-0.5rem)]' : ''
         }`}
       >
         {node.title}
