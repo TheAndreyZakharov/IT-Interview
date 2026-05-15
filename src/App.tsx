@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Link,
   Navigate,
@@ -154,6 +154,12 @@ type LanguageStats = {
   questions: number
   answers: number
   headings: number
+}
+
+type OverviewQuestionGroup = {
+  subtopicId: string
+  subtopicTitle: string
+  questions: ParsedQuestion[]
 }
 
 const EMPTY_LANGUAGE_STATS: LanguageStats = {
@@ -464,6 +470,32 @@ function getQuestionsForSelectedIds(
       selectedSet.has(question.topicId) ||
       selectedSet.has(question.subtopicId)
   )
+}
+
+function groupQuestionsBySubtopic(questions: ParsedQuestion[]) {
+  const groups: OverviewQuestionGroup[] = []
+  const groupMap = new Map<string, OverviewQuestionGroup>()
+
+  for (const question of questions) {
+    const groupKey = question.subtopicId || question.subtopicTitle || question.id
+    const existingGroup = groupMap.get(groupKey)
+
+    if (existingGroup) {
+      existingGroup.questions.push(question)
+      continue
+    }
+
+    const newGroup: OverviewQuestionGroup = {
+      subtopicId: groupKey,
+      subtopicTitle: question.subtopicTitle || question.topicTitle,
+      questions: [question],
+    }
+
+    groupMap.set(groupKey, newGroup)
+    groups.push(newGroup)
+  }
+
+  return groups
 }
 
 type SharedPageProps = {
@@ -1146,9 +1178,9 @@ function OverviewPage({
           </button>
         )}
 
-        <div className="mt-10 flex items-start gap-6 overflow-hidden">
+        <div className="mt-10 flex items-start gap-6 overflow-visible">
           <aside
-            className={`min-w-0 shrink-0 transition-all duration-300 ease-in-out ${
+            className={`min-w-0 shrink-0 self-start transition-all duration-300 ease-in-out lg:sticky lg:top-6 ${
               isSidebarOpen
                 ? 'w-full translate-x-0 opacity-100 lg:w-[46%] xl:max-w-[50%]'
                 : 'w-0 -translate-x-full opacity-0'
@@ -1156,7 +1188,7 @@ function OverviewPage({
             aria-hidden={!isSidebarOpen}
           >
             <div
-              className={`max-h-[70vh] overflow-hidden rounded-3xl border ${
+              className={`max-h-[70vh] overflow-hidden rounded-3xl border shadow-sm ${
                 isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
               }`}
             >
@@ -1206,62 +1238,216 @@ function OverviewPage({
               {!selectedNodeData.node ? (
                 <EmptyContentCard text={text} theme={theme} />
               ) : (
-                <div className="space-y-6">
-                  <div
-                    className={`sticky top-0 z-20 rounded-3xl border px-5 py-4 backdrop-blur ${
-                      isDark
-                        ? 'border-white/10 bg-slate-950/92'
-                        : 'border-slate-200 bg-white/92'
-                    }`}
-                  >
-                    <div
-                      className={`text-xs uppercase tracking-[0.2em] ${
-                        isDark ? 'text-slate-400' : 'text-slate-500'
-                      }`}
-                    >
-                      {text.currentSection}
-                    </div>
-
-                    <div className="mt-3 space-y-2">
-                      {selectedTitleTrail.map((item, index) => (
-                        <div
-                          key={`${item}-${index}`}
-                          className={
-                            index === 0
-                              ? 'text-2xl font-semibold'
-                              : index === 1
-                                ? 'text-lg font-semibold'
-                                : 'text-sm font-semibold'
-                          }
-                        >
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {selectedQuestions.length === 0 ? (
-                    <EmptyContentCard text={text} theme={theme} />
-                  ) : (
-                    <div className="space-y-5">
-                      {selectedQuestions.map((question, index) => (
-                        <OverviewQuestionAnswerBlock
-                          key={question.id}
-                          question={question}
-                          index={index}
-                          text={text}
-                          theme={theme}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <OverviewQuestionsPanel
+                  key={resolvedSelectedNodeId}
+                  selectedTitleTrail={selectedTitleTrail}
+                  selectedQuestions={selectedQuestions}
+                  text={text}
+                  theme={theme}
+                />
               )}
             </div>
           </section>
         </div>
       </div>
     </main>
+  )
+}
+
+type OverviewQuestionsPanelProps = {
+  selectedTitleTrail: string[]
+  selectedQuestions: ParsedQuestion[]
+  text: Dictionary
+  theme: ThemeMode
+}
+
+function OverviewQuestionsPanel({
+  selectedTitleTrail,
+  selectedQuestions,
+  text,
+  theme,
+}: OverviewQuestionsPanelProps) {
+  const isDark = theme === 'dark'
+  const groupedQuestions = useMemo(
+    () => groupQuestionsBySubtopic(selectedQuestions),
+    [selectedQuestions]
+  )
+  const firstSubtopicTitle = groupedQuestions[0]?.subtopicTitle ?? ''
+  const [activeSubtopicTitle, setActiveSubtopicTitle] = useState(firstSubtopicTitle)
+  const [shouldShowBackTop, setShouldShowBackTop] = useState(false)
+  const subtopicRefs = useRef<Record<string, HTMLDivElement | null>>({})
+
+  useEffect(() => {
+    let animationFrameId = 0
+
+    function updateScrollState() {
+      animationFrameId = 0
+
+      const nextShouldShowBackTop = window.scrollY > 560
+      setShouldShowBackTop((prev) =>
+        prev === nextShouldShowBackTop ? prev : nextShouldShowBackTop
+      )
+
+      let nextActiveTitle = firstSubtopicTitle
+
+      for (const group of groupedQuestions) {
+        const element = subtopicRefs.current[group.subtopicId]
+
+        if (!element) {
+          continue
+        }
+
+        const rect = element.getBoundingClientRect()
+
+        if (rect.top <= 170) {
+          nextActiveTitle = group.subtopicTitle
+        }
+      }
+
+      setActiveSubtopicTitle((prev) =>
+        prev === nextActiveTitle ? prev : nextActiveTitle
+      )
+    }
+
+    function handleScroll() {
+      if (animationFrameId) {
+        return
+      }
+
+      animationFrameId = window.requestAnimationFrame(updateScrollState)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll)
+
+    animationFrameId = window.requestAnimationFrame(updateScrollState)
+
+    return () => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
+    }
+  }, [firstSubtopicTitle, groupedQuestions])
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  if (selectedQuestions.length === 0) {
+    return <EmptyContentCard text={text} theme={theme} />
+  }
+
+  return (
+    <div className="space-y-6">
+      <div
+        className={`sticky top-4 z-30 rounded-3xl border px-5 py-4 pr-16 shadow-sm backdrop-blur ${
+          isDark
+            ? 'border-white/10 bg-slate-950/92'
+            : 'border-slate-200 bg-white/92'
+        }`}
+      >
+        <div
+          className={`text-xs uppercase tracking-[0.2em] ${
+            isDark ? 'text-slate-400' : 'text-slate-500'
+          }`}
+        >
+          {text.currentSection}
+        </div>
+
+        <div className="mt-3 space-y-2">
+          {selectedTitleTrail.map((item, index) => (
+            <div
+              key={`${item}-${index}`}
+              className={
+                index === 0
+                  ? 'break-words text-2xl font-semibold'
+                  : index === 1
+                    ? 'break-words text-lg font-semibold'
+                    : 'break-words text-sm font-semibold'
+              }
+            >
+              {item}
+            </div>
+          ))}
+
+          {activeSubtopicTitle && (
+            <div
+              className={`break-words pt-1 text-sm font-medium ${
+                isDark ? 'text-slate-300' : 'text-slate-600'
+              }`}
+            >
+              {text.subtopic}: {' '}
+              <span className={isDark ? 'text-white' : 'text-slate-900'}>
+                {activeSubtopicTitle}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {shouldShowBackTop && (
+          <button
+            type="button"
+            onClick={scrollToTop}
+            aria-label="Scroll to top"
+            title="Scroll to top"
+            className={`absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border text-lg font-semibold shadow-sm transition hover:scale-105 ${
+              isDark
+                ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            ↑
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-8">
+        {groupedQuestions.map((group) => (
+          <div
+            key={group.subtopicId}
+            ref={(element) => {
+              subtopicRefs.current[group.subtopicId] = element
+            }}
+            className="scroll-mt-36"
+          >
+            <div
+              className={`mb-5 rounded-3xl border px-5 py-4 ${
+                isDark
+                  ? 'border-white/10 bg-slate-900/70 text-white'
+                  : 'border-slate-200 bg-white text-slate-900'
+              }`}
+            >
+              <div
+                className={`text-xs uppercase tracking-[0.2em] ${
+                  isDark ? 'text-slate-400' : 'text-slate-500'
+                }`}
+              >
+                {text.subtopic}
+              </div>
+              <h3 className="mt-2 break-words text-xl font-semibold">
+                {group.subtopicTitle}
+              </h3>
+            </div>
+
+            <div className="space-y-5">
+              {group.questions.map((question, questionIndex) => (
+                <OverviewQuestionAnswerBlock
+                  key={question.id}
+                  question={question}
+                  index={selectedQuestions.findIndex((item) => item.id === question.id)}
+                  fallbackIndex={questionIndex}
+                  text={text}
+                  theme={theme}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -1344,7 +1530,11 @@ function OverviewTocNode({
               ? 'text-slate-200 hover:bg-white/10'
               : 'text-slate-700 hover:bg-slate-100'
         } ${node.level === 2 ? 'font-semibold' : node.level === 3 ? 'font-medium' : 'text-sm'} ${
-          node.level === 4 ? 'ml-4 max-w-[calc(100%-1rem)]' : node.level === 3 ? 'ml-2 max-w-[calc(100%-0.5rem)]' : ''
+          node.level === 4
+            ? 'ml-4 max-w-[calc(100%-1rem)]'
+            : node.level === 3
+              ? 'ml-2 max-w-[calc(100%-0.5rem)]'
+              : ''
         }`}
       >
         {node.title}
@@ -1370,6 +1560,7 @@ function OverviewTocNode({
 type OverviewQuestionAnswerBlockProps = {
   question: ParsedQuestion
   index: number
+  fallbackIndex?: number
   text: Dictionary
   theme: ThemeMode
 }
@@ -1377,11 +1568,13 @@ type OverviewQuestionAnswerBlockProps = {
 function OverviewQuestionAnswerBlock({
   question,
   index,
+  fallbackIndex = 0,
   text,
   theme,
 }: OverviewQuestionAnswerBlockProps) {
   const isDark = theme === 'dark'
   const [isAnswerOpen, setIsAnswerOpen] = useState(false)
+  const questionNumber = index >= 0 ? index + 1 : fallbackIndex + 1
 
   return (
     <div
@@ -1394,7 +1587,7 @@ function OverviewQuestionAnswerBlock({
           isDark ? 'text-slate-400' : 'text-slate-500'
         }`}
       >
-        {text.questionOf} {index + 1}
+        {text.questionOf} {questionNumber}
       </div>
 
       <h3 className="mt-3 text-xl font-semibold leading-8">{question.text}</h3>
