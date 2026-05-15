@@ -1091,6 +1091,7 @@ function OverviewPage({
   const isDark = theme === 'dark'
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [selectedNodeId, setSelectedNodeId] = useState('')
+  const overviewLayoutRef = useRef<HTMLDivElement | null>(null)
 
   const resolvedSelectedNodeId = useMemo(() => {
     if (selectedNodeId) {
@@ -1119,6 +1120,25 @@ function OverviewPage({
       ),
     [resolvedSelectedNodeId, content.questions, content.tocFlat]
   )
+
+  function handleSelectOverviewNode(nodeId: string) {
+    setSelectedNodeId(nodeId)
+
+    window.requestAnimationFrame(() => {
+      const layoutElement = overviewLayoutRef.current
+
+      if (!layoutElement) {
+        return
+      }
+
+      const targetTop = layoutElement.getBoundingClientRect().top + window.scrollY
+
+      window.scrollTo({
+        top: Math.max(targetTop - 24, 0),
+        behavior: 'smooth',
+      })
+    })
+  }
 
   return (
     <main
@@ -1175,7 +1195,12 @@ function OverviewPage({
           </button>
         )}
 
-        <div className="mt-10 flex items-start gap-6 overflow-visible">
+        <div
+          ref={overviewLayoutRef}
+          className={`mt-10 flex items-start gap-6 ${
+            isSidebarOpen ? 'overflow-hidden lg:overflow-visible' : 'overflow-visible'
+          }`}
+        >
           <aside
             className={`min-w-0 shrink-0 self-start transition-all duration-300 ease-in-out lg:sticky lg:top-6 ${
               isSidebarOpen
@@ -1215,7 +1240,7 @@ function OverviewPage({
                 <OverviewTocTree
                   nodes={content.tocTree}
                   activeHeadingId={resolvedSelectedNodeId}
-                  onSelect={setSelectedNodeId}
+                  onSelect={handleSelectOverviewNode}
                   theme={theme}
                 />
               </div>
@@ -1224,7 +1249,7 @@ function OverviewPage({
 
           <section
             className={`min-w-0 transition-all duration-300 ease-in-out ${
-              isSidebarOpen ? 'flex-1' : 'mx-auto w-full max-w-5xl flex-1'
+              isSidebarOpen ? 'hidden lg:block lg:flex-1' : 'mx-auto w-full max-w-5xl flex-1'
             }`}
           >
             <div
