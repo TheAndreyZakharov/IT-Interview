@@ -1179,21 +1179,6 @@ function OverviewPage({
           </p>
         </div>
 
-        {!isSidebarOpen && (
-          <button
-            type="button"
-            onClick={() => setIsSidebarOpen(true)}
-            aria-label={text.showContents}
-            title={text.showContents}
-            className={`fixed left-4 top-1/2 z-50 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border text-xl font-semibold shadow-lg transition hover:scale-105 ${
-              isDark
-                ? 'border-white/10 bg-slate-950/95 text-slate-200 hover:bg-white/10'
-                : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            ›
-          </button>
-        )}
 
         <div
           ref={overviewLayoutRef}
@@ -1266,6 +1251,8 @@ function OverviewPage({
                   selectedQuestions={selectedQuestions}
                   text={text}
                   theme={theme}
+                  isSidebarOpen={isSidebarOpen}
+                  onShowContents={() => setIsSidebarOpen(true)}
                 />
               )}
             </div>
@@ -1281,6 +1268,8 @@ type OverviewQuestionsPanelProps = {
   selectedQuestions: ParsedQuestion[]
   text: Dictionary
   theme: ThemeMode
+  isSidebarOpen: boolean
+  onShowContents: () => void
 }
 
 function OverviewQuestionsPanel({
@@ -1288,6 +1277,8 @@ function OverviewQuestionsPanel({
   selectedQuestions,
   text,
   theme,
+  isSidebarOpen,
+  onShowContents,
 }: OverviewQuestionsPanelProps) {
   const isDark = theme === 'dark'
   const groupedQuestions = useMemo(
@@ -1371,6 +1362,22 @@ function OverviewQuestionsPanel({
             : 'border-slate-200 bg-white/92'
         }`}
       >
+        {!isSidebarOpen && (
+          <button
+            type="button"
+            onClick={onShowContents}
+            aria-label={text.showContents}
+            title={text.showContents}
+            className={`absolute left-[calc((100%-100vw)/2+1rem)] top-1/2 z-50 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border text-xl font-semibold shadow-lg transition hover:scale-105 ${
+              isDark
+                ? 'border-white/10 bg-slate-950/95 text-slate-200 hover:bg-white/10'
+                : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            ›
+          </button>
+        )}
+
         <div
           className={`text-xs uppercase tracking-[0.2em] ${
             isDark ? 'text-slate-400' : 'text-slate-500'
@@ -1401,7 +1408,7 @@ function OverviewQuestionsPanel({
                 isDark ? 'text-slate-300' : 'text-slate-600'
               }`}
             >
-              {text.subtopic}: {' '}
+              {text.subtopic}:{' '}
               <span className={isDark ? 'text-white' : 'text-slate-900'}>
                 {activeSubtopicTitle}
               </span>
