@@ -517,10 +517,7 @@ function App() {
   useEffect(() => {
     document.documentElement.lang = interfaceLanguage
     document.documentElement.classList.toggle('dark', theme === 'dark')
-    document.title =
-      interfaceLanguage === 'ru'
-        ? 'IT INTERVIEW — подготовка к собеседованиям'
-        : 'IT INTERVIEW — interview preparation'
+    document.title = 'IT INTERVIEW'
   }, [interfaceLanguage, theme])
 
   useEffect(() => {
