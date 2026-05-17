@@ -2072,28 +2072,310 @@ type FormattedAnswerProps = {
   text: string
 }
 
-function FormattedAnswer({ text }: FormattedAnswerProps) {
-  const lines = text.split('\n')
+type AnswerToken =
+  | {
+      type: 'paragraph'
+      lines: string[]
+    }
+  | {
+      type: 'list'
+      items: string[]
+    }
+  | {
+      type: 'code'
+      language: string
+      code: string
+    }
+  | {
+      type: 'table'
+      rows: string[][]
+    }
+  | {
+      type: 'space'
+    }
 
-  return (
-    <div className="space-y-3">
-      {lines.map((line, index) => {
-        const trimmed = line.trim()
+function stripMarkdownMarks(value: string) {
+  return value
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/_(.*?)_/g, '$1')
+}
 
-        if (!trimmed) {
-          return <div key={index} className="h-2" />
+function renderInlineMarkdown(value: string, theme: ThemeMode) {
+  const isDark = theme === 'dark'
+  const parts = value.split(/(`[^`]+`)/g)
+
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`') && part.length >= 2) {
+      return (
+        <code
+          key={`${part}-${index}`}
+          className={`rounded-md border px-1.5 py-0.5 font-mono text-[0.9em] ${
+            isDark
+              ? 'border-white/10 bg-white/10 text-slate-100'
+              : 'border-slate-200 bg-slate-100 text-slate-900'
+          }`}
+        >
+          {part.slice(1, -1)}
+        </code>
+      )
+    }
+
+    return <span key={`${part}-${index}`}>{stripMarkdownMarks(part)}</span>
+  })
+}
+
+function isMarkdownTableSeparator(line: string) {
+  const trimmed = line.trim()
+
+  if (!trimmed.includes('|')) {
+    return false
+  }
+
+  return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(trimmed)
+}
+
+function parseMarkdownTableRow(line: string) {
+  return line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim())
+}
+
+function isMarkdownTableStart(lines: string[], index: number) {
+  const currentLine = lines[index]
+  const nextLine = lines[index + 1]
+
+  return Boolean(
+    currentLine &&
+      nextLine &&
+      currentLine.includes('|') &&
+      isMarkdownTableSeparator(nextLine)
+  )
+}
+
+function parseAnswerTokens(text: string): AnswerToken[] {
+  const lines = text.replace(/\r/g, '').split('\n')
+  const tokens: AnswerToken[] = []
+
+  let index = 0
+
+  while (index < lines.length) {
+    const line = lines[index]
+    const trimmed = line.trim()
+
+    if (!trimmed) {
+      tokens.push({ type: 'space' })
+      index += 1
+      continue
+    }
+
+    const codeFenceMatch = trimmed.match(/^```([\w#+.-]*)\s*$/)
+
+    if (codeFenceMatch) {
+      const language = codeFenceMatch[1] || ''
+      const codeLines: string[] = []
+
+      index += 1
+
+      while (index < lines.length && !lines[index].trim().startsWith('```')) {
+        codeLines.push(lines[index])
+        index += 1
+      }
+
+      if (index < lines.length) {
+        index += 1
+      }
+
+      tokens.push({
+        type: 'code',
+        language,
+        code: codeLines.join('\n'),
+      })
+
+      continue
+    }
+
+    if (isMarkdownTableStart(lines, index)) {
+      const tableRows: string[][] = [parseMarkdownTableRow(lines[index])]
+
+      index += 2
+
+      while (index < lines.length && lines[index].includes('|')) {
+        const tableLine = lines[index].trim()
+
+        if (!tableLine || tableLine.startsWith('```')) {
+          break
         }
 
-        if (trimmed.startsWith('- ')) {
+        tableRows.push(parseMarkdownTableRow(tableLine))
+        index += 1
+      }
+
+      tokens.push({
+        type: 'table',
+        rows: tableRows,
+      })
+
+      continue
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items: string[] = []
+
+      while (index < lines.length && /^[-*]\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^[-*]\s+/, ''))
+        index += 1
+      }
+
+      tokens.push({
+        type: 'list',
+        items,
+      })
+
+      continue
+    }
+
+    const paragraphLines: string[] = []
+
+    while (
+      index < lines.length &&
+      lines[index].trim() &&
+      !lines[index].trim().match(/^```([\w#+.-]*)\s*$/) &&
+      !isMarkdownTableStart(lines, index) &&
+      !/^[-*]\s+/.test(lines[index].trim())
+    ) {
+      paragraphLines.push(lines[index].trim())
+      index += 1
+    }
+
+    tokens.push({
+      type: 'paragraph',
+      lines: paragraphLines,
+    })
+  }
+
+  return tokens
+}
+
+function FormattedAnswer({ text }: FormattedAnswerProps) {
+  const tokens = parseAnswerTokens(text)
+  const isDark = document.documentElement.classList.contains('dark')
+
+  return (
+    <div className="space-y-4">
+      {tokens.map((token, index) => {
+        if (token.type === 'space') {
+          return <div key={index} className="h-1" />
+        }
+
+        if (token.type === 'paragraph') {
           return (
-            <div key={index} className="flex gap-2">
-              <span>•</span>
-              <span>{trimmed.replace(/^- /, '')}</span>
+            <p key={index} className="leading-7">
+              {renderInlineMarkdown(token.lines.join(' '), isDark ? 'dark' : 'light')}
+            </p>
+          )
+        }
+
+        if (token.type === 'list') {
+          return (
+            <ul key={index} className="space-y-2 pl-5">
+              {token.items.map((item, itemIndex) => (
+                <li key={`${item}-${itemIndex}`} className="list-disc leading-7">
+                  {renderInlineMarkdown(item, isDark ? 'dark' : 'light')}
+                </li>
+              ))}
+            </ul>
+          )
+        }
+
+        if (token.type === 'code') {
+          return (
+            <div
+              key={index}
+              className={`overflow-hidden rounded-2xl border ${
+                isDark
+                  ? 'border-white/10 bg-slate-950 text-slate-100'
+                  : 'border-slate-200 bg-slate-950 text-slate-100'
+              }`}
+            >
+              {token.language && (
+                <div
+                  className={`border-b px-4 py-2 text-xs uppercase tracking-[0.18em] ${
+                    isDark
+                      ? 'border-white/10 bg-white/5 text-slate-400'
+                      : 'border-white/10 bg-white/5 text-slate-400'
+                  }`}
+                >
+                  {token.language}
+                </div>
+              )}
+
+              <pre className="overflow-x-auto px-4 py-4 text-sm leading-6">
+                <code>{token.code}</code>
+              </pre>
             </div>
           )
         }
 
-        return <p key={index}>{trimmed}</p>
+        if (token.type === 'table') {
+          const [headRow, ...bodyRows] = token.rows
+
+          return (
+            <div
+              key={index}
+              className={`overflow-x-auto rounded-2xl border ${
+                isDark ? 'border-white/10' : 'border-slate-200'
+              }`}
+            >
+              <table className="w-full min-w-max border-collapse text-left text-sm">
+                <thead className={isDark ? 'bg-white/10' : 'bg-slate-100'}>
+                  <tr>
+                    {headRow.map((cell, cellIndex) => (
+                      <th
+                        key={`${cell}-${cellIndex}`}
+                        className={`border-b px-4 py-3 font-semibold ${
+                          isDark ? 'border-white/10' : 'border-slate-200'
+                        }`}
+                      >
+                        {renderInlineMarkdown(cell, isDark ? 'dark' : 'light')}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {bodyRows.map((row, rowIndex) => (
+                    <tr
+                      key={rowIndex}
+                      className={
+                        isDark
+                          ? 'odd:bg-white/[0.03] even:bg-transparent'
+                          : 'odd:bg-white even:bg-slate-50'
+                      }
+                    >
+                      {row.map((cell, cellIndex) => (
+                        <td
+                          key={`${cell}-${cellIndex}`}
+                          className={`border-b px-4 py-3 align-top ${
+                            isDark ? 'border-white/10' : 'border-slate-200'
+                          }`}
+                        >
+                          {renderInlineMarkdown(cell, isDark ? 'dark' : 'light')}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        }
+
+        return null
       })}
     </div>
   )

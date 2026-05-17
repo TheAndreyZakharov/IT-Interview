@@ -123,13 +123,7 @@ function normalizeText(value) {
 }
 
 function cleanAnswerLine(value) {
-  return value
-    .replace(/\r/g, '')
-    .replace(/\*\*/g, '')
-    .replace(/\*/g, '')
-    .replace(/__/g, '')
-    .replace(/_/g, '')
-    .trimEnd()
+  return value.replace(/\r/g, '').trimEnd()
 }
 
 function buildLanguageContentStats(rootDir, languageDir) {
@@ -336,11 +330,9 @@ function parseAnswerFiles(rootDir, languageDir) {
         continue
       }
 
-      if (line.startsWith('>')) {
-        if (currentQuestion) {
-          const cleanedLine = cleanAnswerLine(rawLine.replace(/^\s*>\s?/, ''))
-          answerLines.push(cleanedLine)
-        }
+      if (currentQuestion) {
+        const answerLine = rawLine.replace(/^\s*>\s?/, '')
+        answerLines.push(cleanAnswerLine(answerLine))
       }
     }
 
