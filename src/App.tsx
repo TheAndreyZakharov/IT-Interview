@@ -159,6 +159,7 @@ type LanguageStats = {
 type OverviewQuestionGroup = {
   subtopicId: string
   subtopicTitle: string
+  subtopicTrail: string[]
   questions: ParsedQuestion[]
 }
 
@@ -438,6 +439,21 @@ function getNodeTitleTrail(nodeId: string, tocFlat: TocFlatNode[]) {
     .map((item) => item.title)
 }
 
+function getSubtopicTitleTrail(nodeId: string, tocFlat: TocFlatNode[]) {
+  const tocMap = new Map(tocFlat.map((item) => [item.id, item]))
+  const node = tocMap.get(nodeId)
+
+  if (!node) {
+    return []
+  }
+
+  return [...node.parentIds, node.id]
+    .map((id) => tocMap.get(id))
+    .filter((item): item is TocFlatNode => Boolean(item))
+    .filter((item) => item.level >= 3)
+    .map((item) => item.title)
+}
+
 function getQuestionsForSelectedNode(
   selectedId: string,
   questions: ParsedQuestion[],
@@ -472,7 +488,10 @@ function getQuestionsForSelectedIds(
   )
 }
 
-function groupQuestionsBySubtopic(questions: ParsedQuestion[]) {
+function groupQuestionsBySubtopic(
+  questions: ParsedQuestion[],
+  tocFlat: TocFlatNode[]
+) {
   const groups: OverviewQuestionGroup[] = []
   const groupMap = new Map<string, OverviewQuestionGroup>()
 
@@ -485,9 +504,21 @@ function groupQuestionsBySubtopic(questions: ParsedQuestion[]) {
       continue
     }
 
+    const subtopicTrail = question.subtopicId
+      ? getSubtopicTitleTrail(question.subtopicId, tocFlat)
+      : []
+
     const newGroup: OverviewQuestionGroup = {
       subtopicId: groupKey,
       subtopicTitle: question.subtopicTitle || question.topicTitle,
+      subtopicTrail:
+        subtopicTrail.length > 0
+          ? subtopicTrail
+          : question.subtopicTitle
+            ? [question.subtopicTitle]
+            : question.topicTitle
+              ? [question.topicTitle]
+              : [],
       questions: [question],
     }
 
@@ -1289,8 +1320,8 @@ function OverviewQuestionsPanel({
 }: OverviewQuestionsPanelProps) {
   const isDark = theme === 'dark'
   const groupedQuestions = useMemo(
-    () => groupQuestionsBySubtopic(selectedQuestions),
-    [selectedQuestions]
+    () => groupQuestionsBySubtopic(selectedQuestions, tocFlat),
+    [selectedQuestions, tocFlat]
   )
   const firstSubtopicId = groupedQuestions[0]?.subtopicId ?? ''
   const firstSubtopicTrail = useMemo(
@@ -1486,9 +1517,21 @@ function OverviewQuestionsPanel({
               >
                 {text.subtopic}
               </div>
-              <h3 className="mt-2 break-words text-xl font-semibold">
-                {group.subtopicTitle}
-              </h3>
+
+              <div className="mt-2 space-y-1.5">
+                {group.subtopicTrail.map((item, itemIndex) => (
+                  <div
+                    key={`${group.subtopicId}-${item}-${itemIndex}`}
+                    className={
+                      itemIndex === 0
+                        ? 'break-words text-lg font-semibold leading-7 sm:text-xl'
+                        : 'break-words text-sm font-semibold leading-6 sm:text-base'
+                    }
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-5">
