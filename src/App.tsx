@@ -1253,6 +1253,7 @@ function OverviewPage({
                   key={resolvedSelectedNodeId}
                   selectedTitleTrail={selectedTitleTrail}
                   selectedQuestions={selectedQuestions}
+                  tocFlat={content.tocFlat}
                   text={text}
                   theme={theme}
                   isSidebarOpen={isSidebarOpen}
@@ -1270,6 +1271,7 @@ function OverviewPage({
 type OverviewQuestionsPanelProps = {
   selectedTitleTrail: string[]
   selectedQuestions: ParsedQuestion[]
+  tocFlat: TocFlatNode[]
   text: Dictionary
   theme: ThemeMode
   isSidebarOpen: boolean
@@ -1279,6 +1281,7 @@ type OverviewQuestionsPanelProps = {
 function OverviewQuestionsPanel({
   selectedTitleTrail,
   selectedQuestions,
+  tocFlat,
   text,
   theme,
   isSidebarOpen,
@@ -1289,10 +1292,37 @@ function OverviewQuestionsPanel({
     () => groupQuestionsBySubtopic(selectedQuestions),
     [selectedQuestions]
   )
-  const firstSubtopicTitle = groupedQuestions[0]?.subtopicTitle ?? ''
-  const [activeSubtopicTitle, setActiveSubtopicTitle] = useState(firstSubtopicTitle)
+  const firstSubtopicId = groupedQuestions[0]?.subtopicId ?? ''
+  const firstSubtopicTrail = useMemo(
+    () => getNodeTitleTrail(firstSubtopicId, tocFlat),
+    [firstSubtopicId, tocFlat]
+  )
+
+  const [activeSubtopicTrail, setActiveSubtopicTrail] = useState(firstSubtopicTrail)
   const [shouldShowBackTop, setShouldShowBackTop] = useState(false)
   const subtopicRefs = useRef<Record<string, HTMLDivElement | null>>({})
+
+  const visibleTitleTrail = useMemo(() => {
+    const result: string[] = []
+
+    for (const title of [...selectedTitleTrail, ...activeSubtopicTrail]) {
+      if (!title) {
+        continue
+      }
+
+      if (result[result.length - 1] === title) {
+        continue
+      }
+
+      if (result.includes(title)) {
+        continue
+      }
+
+      result.push(title)
+    }
+
+    return result
+  }, [selectedTitleTrail, activeSubtopicTrail])
 
   useEffect(() => {
     let animationFrameId = 0
@@ -1305,7 +1335,7 @@ function OverviewQuestionsPanel({
         prev === nextShouldShowBackTop ? prev : nextShouldShowBackTop
       )
 
-      let nextActiveTitle = firstSubtopicTitle
+      let nextActiveTrail = firstSubtopicTrail
 
       for (const group of groupedQuestions) {
         const element = subtopicRefs.current[group.subtopicId]
@@ -1317,13 +1347,20 @@ function OverviewQuestionsPanel({
         const rect = element.getBoundingClientRect()
 
         if (rect.top <= 170) {
-          nextActiveTitle = group.subtopicTitle
+          nextActiveTrail = getNodeTitleTrail(group.subtopicId, tocFlat)
         }
       }
 
-      setActiveSubtopicTitle((prev) =>
-        prev === nextActiveTitle ? prev : nextActiveTitle
-      )
+      setActiveSubtopicTrail((prev) => {
+        if (
+          prev.length === nextActiveTrail.length &&
+          prev.every((item, itemIndex) => item === nextActiveTrail[itemIndex])
+        ) {
+          return prev
+        }
+
+        return nextActiveTrail
+      })
     }
 
     function handleScroll() {
@@ -1347,7 +1384,7 @@ function OverviewQuestionsPanel({
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('resize', handleScroll)
     }
-  }, [firstSubtopicTitle, groupedQuestions])
+  }, [firstSubtopicTrail, groupedQuestions, tocFlat])
 
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1360,8 +1397,8 @@ function OverviewQuestionsPanel({
   return (
     <div className="space-y-5 sm:space-y-6">
       <div
-        className={`sticky top-0 z-30 -mx-3 border-y border-x-0 px-4 py-3 shadow-sm backdrop-blur sm:top-4 sm:mx-0 sm:rounded-3xl sm:border sm:px-5 sm:py-4 ${
-          !isSidebarOpen ? 'pl-16 pr-14 sm:pl-5 sm:pr-16' : 'pr-14 sm:pr-16'
+        className={`sticky top-0 z-30 -mx-3 border-y border-x-0 px-3 py-2 shadow-sm backdrop-blur sm:top-4 sm:mx-0 sm:rounded-3xl sm:border sm:px-5 sm:py-4 ${
+          !isSidebarOpen ? 'pl-14 pr-12 sm:pl-5 sm:pr-16' : 'pr-12 sm:pr-16'
         } ${
           isDark
             ? 'border-white/10 bg-slate-950/92'
@@ -1374,7 +1411,7 @@ function OverviewQuestionsPanel({
             onClick={onShowContents}
             aria-label={text.showContents}
             title={text.showContents}
-            className={`absolute left-3 top-1/2 z-50 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border text-xl font-semibold shadow-lg transition hover:scale-105 sm:left-[calc((100%-100vw)/2+1rem)] ${
+            className={`absolute left-2 top-1/2 z-50 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border text-lg font-semibold shadow-lg transition hover:scale-105 sm:left-[calc((100%-100vw)/2+1rem)] sm:h-10 sm:w-10 sm:text-xl ${
               isDark
                 ? 'border-white/10 bg-slate-950/95 text-slate-200 hover:bg-white/10'
                 : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-50'
@@ -1392,34 +1429,21 @@ function OverviewQuestionsPanel({
           {text.currentSection}
         </div>
 
-        <div className="mt-3 space-y-2">
-          {selectedTitleTrail.map((item, index) => (
+        <div className="mt-2 space-y-1.5 sm:mt-3 sm:space-y-2">
+          {visibleTitleTrail.map((item, index) => (
             <div
               key={`${item}-${index}`}
               className={
                 index === 0
-                  ? 'break-words text-2xl font-semibold'
+                  ? 'break-words text-lg font-semibold leading-6 sm:text-2xl sm:leading-normal'
                   : index === 1
-                    ? 'break-words text-lg font-semibold'
-                    : 'break-words text-sm font-semibold'
+                    ? 'break-words text-sm font-semibold leading-5 sm:text-lg sm:leading-normal'
+                    : 'break-words text-xs font-semibold leading-5 sm:text-sm sm:leading-normal'
               }
             >
               {item}
             </div>
           ))}
-
-          {activeSubtopicTitle && (
-            <div
-              className={`break-words pt-1 text-sm font-medium ${
-                isDark ? 'text-slate-300' : 'text-slate-600'
-              }`}
-            >
-              {text.subtopic}:{' '}
-              <span className={isDark ? 'text-white' : 'text-slate-900'}>
-                {activeSubtopicTitle}
-              </span>
-            </div>
-          )}
         </div>
 
         {shouldShowBackTop && (
@@ -1428,7 +1452,7 @@ function OverviewQuestionsPanel({
             onClick={scrollToTop}
             aria-label="Scroll to top"
             title="Scroll to top"
-            className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border text-lg font-semibold shadow-sm transition hover:scale-105 sm:right-4 sm:top-4 ${
+            className={`absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border text-base font-semibold shadow-sm transition hover:scale-105 sm:right-4 sm:top-4 sm:h-9 sm:w-9 sm:text-lg ${
               isDark
                 ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
                 : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
@@ -1710,15 +1734,15 @@ function TopicSelectorPanel({
 
 
       <div
-        className={`sticky top-0 z-40 -mx-6 mt-6 border-x-0 border-y p-3 backdrop-blur sm:top-4 sm:mx-0 sm:mt-8 sm:rounded-3xl sm:border sm:p-4 ${
+        className={`sticky top-0 z-40 -mx-6 mt-6 border-x-0 border-y p-2 backdrop-blur sm:top-4 sm:mx-0 sm:mt-8 sm:rounded-3xl sm:border sm:p-4 ${
           isDark
             ? 'border-white/10 bg-slate-950/92'
             : 'border-slate-200 bg-white/92'
         }`}
       >
-        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
           <div
-            className={`col-span-2 w-full rounded-2xl border px-4 py-3 text-sm sm:min-w-0 sm:flex-1 ${
+            className={`col-span-3 w-full rounded-2xl border px-3 py-2 text-[11px] leading-4 sm:min-w-0 sm:flex-1 sm:px-4 sm:py-3 sm:text-sm sm:leading-normal ${
               isDark
                 ? 'border-white/10 bg-black/10 text-slate-300'
                 : 'border-slate-200 bg-slate-50 text-slate-600'
@@ -1738,7 +1762,7 @@ function TopicSelectorPanel({
           <button
             type="button"
             onClick={onSelectAll}
-            className={`w-full rounded-2xl border px-4 py-3 text-sm font-medium transition sm:w-auto sm:shrink-0 ${
+            className={`w-full rounded-2xl border px-2 py-2 text-[11px] font-medium leading-4 transition sm:w-auto sm:shrink-0 sm:px-4 sm:py-3 sm:text-sm sm:leading-normal ${
               isDark
                 ? 'border-white/10 bg-white/5 hover:bg-white/10'
                 : 'border-slate-300 bg-white hover:bg-slate-50'
@@ -1750,7 +1774,7 @@ function TopicSelectorPanel({
           <button
             type="button"
             onClick={onClearAll}
-            className={`w-full rounded-2xl border px-4 py-3 text-sm font-medium transition sm:w-auto sm:shrink-0 ${
+            className={`w-full rounded-2xl border px-2 py-2 text-[11px] font-medium leading-4 transition sm:w-auto sm:shrink-0 sm:px-4 sm:py-3 sm:text-sm sm:leading-normal ${
               isDark
                 ? 'border-white/10 bg-white/5 hover:bg-white/10'
                 : 'border-slate-300 bg-white hover:bg-slate-50'
@@ -1763,7 +1787,7 @@ function TopicSelectorPanel({
             type="button"
             onClick={onStart}
             disabled={selectedQuestionsCount === 0}
-            className={`col-span-2 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:w-auto sm:shrink-0 ${
+            className={`w-full rounded-2xl px-2 py-2 text-[11px] font-semibold leading-4 transition disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:w-auto sm:shrink-0 sm:px-5 sm:py-3 sm:text-sm sm:leading-normal ${
               isDark
                 ? 'bg-white text-slate-950 hover:bg-slate-100'
                 : 'bg-slate-950 text-white hover:bg-slate-800'
@@ -2612,7 +2636,7 @@ function SiteHeader({
           <button
             type="button"
             onClick={onToggleTheme}
-            className={`rounded-2xl border px-3 py-2 transition ${
+            className={`inline-flex items-center justify-center rounded-2xl border px-3 py-2 leading-none transition ${
               isDark
                 ? 'border-white/10 bg-white/5 text-slate-200'
                 : 'border-slate-200 bg-slate-50 text-slate-700'
