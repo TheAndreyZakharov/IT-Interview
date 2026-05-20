@@ -1511,15 +1511,15 @@ function OverviewQuestionsPanel({
             className="scroll-mt-36"
           >
             <div
-              className={`mb-5 rounded-3xl border px-5 py-4 ${
+              className={`mb-5 rounded-3xl border px-5 py-4 shadow-sm ${
                 isDark
-                  ? 'border-white/10 bg-slate-900/70 text-white'
-                  : 'border-slate-200 bg-white text-slate-900'
+                  ? 'border-slate-200 bg-slate-100 text-slate-950'
+                  : 'border-slate-950 bg-slate-950 text-white'
               }`}
             >
               <div
                 className={`text-xs uppercase tracking-[0.2em] ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
+                  isDark ? 'text-slate-500' : 'text-slate-400'
                 }`}
               >
                 {text.subtopic}
