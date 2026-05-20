@@ -1238,11 +1238,11 @@ function OverviewPage({
             className={`min-w-0 transition-all duration-300 ease-in-out ${
               isSidebarOpen
                 ? 'hidden lg:block lg:flex-1'
-                : '-mx-6 w-[calc(100%+3rem)] max-w-none flex-1 sm:mx-auto sm:w-full sm:max-w-5xl'
+                : '-mx-6 w-[calc(100%+3rem)] max-w-none flex-none sm:mx-auto sm:w-full sm:max-w-5xl sm:flex-1'
             }`}
           >
             <div
-              className={`border-y border-x-0 px-3 py-4 sm:rounded-3xl sm:border sm:px-6 sm:py-6 ${
+              className={`w-full border-y border-x-0 px-3 py-4 sm:rounded-3xl sm:border sm:px-6 sm:py-6 ${
                 isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
               }`}
             >
