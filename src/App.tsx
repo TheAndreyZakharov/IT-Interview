@@ -490,7 +490,8 @@ function getQuestionsForSelectedIds(
 
 function groupQuestionsBySubtopic(
   questions: ParsedQuestion[],
-  tocFlat: TocFlatNode[]
+  tocFlat: TocFlatNode[],
+  selectedTitleTrail: string[]
 ) {
   const groups: OverviewQuestionGroup[] = []
   const groupMap = new Map<string, OverviewQuestionGroup>()
@@ -504,21 +505,27 @@ function groupQuestionsBySubtopic(
       continue
     }
 
-    const subtopicTrail = question.subtopicId
+    const fullSubtopicTrail = question.subtopicId
       ? getSubtopicTitleTrail(question.subtopicId, tocFlat)
       : []
+
+    const filteredSubtopicTrail = fullSubtopicTrail.filter(
+      (title) => !selectedTitleTrail.includes(title)
+    )
 
     const newGroup: OverviewQuestionGroup = {
       subtopicId: groupKey,
       subtopicTitle: question.subtopicTitle || question.topicTitle,
       subtopicTrail:
-        subtopicTrail.length > 0
-          ? subtopicTrail
-          : question.subtopicTitle
-            ? [question.subtopicTitle]
-            : question.topicTitle
-              ? [question.topicTitle]
-              : [],
+        filteredSubtopicTrail.length > 0
+          ? filteredSubtopicTrail
+          : fullSubtopicTrail.length > 0
+            ? [fullSubtopicTrail[fullSubtopicTrail.length - 1]]
+            : question.subtopicTitle
+              ? [question.subtopicTitle]
+              : question.topicTitle
+                ? [question.topicTitle]
+                : [],
       questions: [question],
     }
 
@@ -1320,8 +1327,8 @@ function OverviewQuestionsPanel({
 }: OverviewQuestionsPanelProps) {
   const isDark = theme === 'dark'
   const groupedQuestions = useMemo(
-    () => groupQuestionsBySubtopic(selectedQuestions, tocFlat),
-    [selectedQuestions, tocFlat]
+    () => groupQuestionsBySubtopic(selectedQuestions, tocFlat, selectedTitleTrail),
+    [selectedQuestions, tocFlat, selectedTitleTrail]
   )
   const firstSubtopicId = groupedQuestions[0]?.subtopicId ?? ''
   const firstSubtopicTrail = useMemo(
