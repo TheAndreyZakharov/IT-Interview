@@ -2094,19 +2094,16 @@ type AnswerToken =
       type: 'space'
     }
 
-function stripMarkdownMarks(value: string) {
-  return value
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/__(.*?)__/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/_(.*?)_/g, '$1')
-}
 
 function renderInlineMarkdown(value: string, theme: ThemeMode) {
   const isDark = theme === 'dark'
-  const parts = value.split(/(`[^`]+`)/g)
+  const parts = value.split(/(`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_)/g)
 
   return parts.map((part, index) => {
+    if (!part) {
+      return null
+    }
+
     if (part.startsWith('`') && part.endsWith('`') && part.length >= 2) {
       return (
         <code
@@ -2122,7 +2119,39 @@ function renderInlineMarkdown(value: string, theme: ThemeMode) {
       )
     }
 
-    return <span key={`${part}-${index}`}>{stripMarkdownMarks(part)}</span>
+    if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
+      return (
+        <strong key={`${part}-${index}`} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+
+    if (part.startsWith('__') && part.endsWith('__') && part.length >= 4) {
+      return (
+        <strong key={`${part}-${index}`} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+
+    if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) {
+      return (
+        <strong key={`${part}-${index}`} className="font-semibold">
+          {part.slice(1, -1)}
+        </strong>
+      )
+    }
+
+    if (part.startsWith('_') && part.endsWith('_') && part.length >= 2) {
+      return (
+        <strong key={`${part}-${index}`} className="font-semibold">
+          {part.slice(1, -1)}
+        </strong>
+      )
+    }
+
+    return <span key={`${part}-${index}`}>{part}</span>
   })
 }
 
