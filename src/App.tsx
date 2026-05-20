@@ -1182,8 +1182,10 @@ function OverviewPage({
 
         <div
           ref={overviewLayoutRef}
-          className={`mt-10 flex items-start gap-6 ${
-            isSidebarOpen ? 'overflow-hidden lg:overflow-visible' : 'overflow-visible'
+          className={`mt-10 flex items-start ${
+            isSidebarOpen
+              ? 'gap-6 overflow-hidden lg:overflow-visible'
+              : 'gap-0 overflow-visible lg:gap-6'
           }`}
         >
           <aside
@@ -1965,7 +1967,7 @@ function QuestionMarathonLayout({
         </div>
       ) : (
         <div
-          className={`mx-auto mt-8 max-w-4xl border-y border-x-0 p-3 shadow-sm sm:mt-10 sm:rounded-3xl sm:border sm:p-6 ${
+          className={`-mx-6 mt-8 w-[calc(100%+3rem)] border-y border-x-0 p-3 shadow-sm sm:mx-auto sm:mt-10 sm:w-full sm:max-w-4xl sm:rounded-3xl sm:border sm:p-6 ${
             isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
           }`}
         >
