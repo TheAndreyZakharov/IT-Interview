@@ -1234,11 +1234,13 @@ function OverviewPage({
 
           <section
             className={`min-w-0 transition-all duration-300 ease-in-out ${
-              isSidebarOpen ? 'hidden lg:block lg:flex-1' : 'mx-auto w-full max-w-5xl flex-1'
+              isSidebarOpen
+                ? 'hidden lg:block lg:flex-1'
+                : '-mx-6 w-[calc(100%+3rem)] max-w-none flex-1 sm:mx-auto sm:w-full sm:max-w-5xl'
             }`}
           >
             <div
-              className={`rounded-3xl border px-6 py-6 ${
+              className={`border-y border-x-0 px-3 py-4 sm:rounded-3xl sm:border sm:px-6 sm:py-6 ${
                 isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
               }`}
             >
@@ -1354,9 +1356,11 @@ function OverviewQuestionsPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <div
-        className={`sticky top-4 z-30 rounded-3xl border px-5 py-4 pr-16 shadow-sm backdrop-blur ${
+        className={`sticky top-0 z-30 -mx-3 border-y border-x-0 px-4 py-3 shadow-sm backdrop-blur sm:top-4 sm:mx-0 sm:rounded-3xl sm:border sm:px-5 sm:py-4 ${
+          !isSidebarOpen ? 'pl-16 pr-14 sm:pl-5 sm:pr-16' : 'pr-14 sm:pr-16'
+        } ${
           isDark
             ? 'border-white/10 bg-slate-950/92'
             : 'border-slate-200 bg-white/92'
@@ -1368,7 +1372,7 @@ function OverviewQuestionsPanel({
             onClick={onShowContents}
             aria-label={text.showContents}
             title={text.showContents}
-            className={`absolute left-[calc((100%-100vw)/2+1rem)] top-1/2 z-50 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border text-xl font-semibold shadow-lg transition hover:scale-105 ${
+            className={`absolute left-3 top-1/2 z-50 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border text-xl font-semibold shadow-lg transition hover:scale-105 sm:left-[calc((100%-100vw)/2+1rem)] ${
               isDark
                 ? 'border-white/10 bg-slate-950/95 text-slate-200 hover:bg-white/10'
                 : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-50'
@@ -1422,7 +1426,7 @@ function OverviewQuestionsPanel({
             onClick={scrollToTop}
             aria-label="Scroll to top"
             title="Scroll to top"
-            className={`absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border text-lg font-semibold shadow-sm transition hover:scale-105 ${
+            className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border text-lg font-semibold shadow-sm transition hover:scale-105 sm:right-4 sm:top-4 ${
               isDark
                 ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
                 : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
@@ -1433,7 +1437,7 @@ function OverviewQuestionsPanel({
         )}
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         {groupedQuestions.map((group) => (
           <div
             key={group.subtopicId}
@@ -1607,7 +1611,7 @@ function OverviewQuestionAnswerBlock({
 
   return (
     <div
-      className={`rounded-3xl border p-6 ${
+      className={`rounded-3xl border p-4 sm:p-6 ${
         isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
       }`}
     >
@@ -1634,10 +1638,8 @@ function OverviewQuestionAnswerBlock({
 
       {isAnswerOpen && (
         <div
-          className={`mt-5 rounded-2xl border p-5 leading-7 ${
-            isDark
-              ? 'border-white/10 bg-slate-900/70 text-slate-100'
-              : 'border-slate-200 bg-white text-slate-700'
+          className={`mt-5 border-t pt-5 text-left leading-7 ${
+            isDark ? 'border-white/10 text-slate-100' : 'border-slate-200 text-slate-700'
           }`}
         >
           <div
@@ -1692,7 +1694,7 @@ function TopicSelectorPanel({
   )
 
   return (
-    <section className="mt-10">
+    <section className="mt-6 sm:mt-10">
       <div className="mx-auto max-w-3xl text-center">
         <h1 className="text-3xl font-semibold">{text.chooseTopicsTitle}</h1>
         <p
@@ -1704,16 +1706,17 @@ function TopicSelectorPanel({
         </p>
       </div>
 
+
       <div
-        className={`sticky top-4 z-40 mt-8 rounded-3xl border p-4 backdrop-blur ${
+        className={`sticky top-0 z-40 -mx-6 mt-6 border-x-0 border-y p-3 backdrop-blur sm:top-4 sm:mx-0 sm:mt-8 sm:rounded-3xl sm:border sm:p-4 ${
           isDark
             ? 'border-white/10 bg-slate-950/92'
             : 'border-slate-200 bg-white/92'
         }`}
       >
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center">
           <div
-            className={`min-w-0 flex-1 rounded-2xl border px-4 py-3 text-sm ${
+            className={`col-span-2 w-full rounded-2xl border px-4 py-3 text-sm sm:min-w-0 sm:flex-1 ${
               isDark
                 ? 'border-white/10 bg-black/10 text-slate-300'
                 : 'border-slate-200 bg-slate-50 text-slate-600'
@@ -1733,7 +1736,7 @@ function TopicSelectorPanel({
           <button
             type="button"
             onClick={onSelectAll}
-            className={`shrink-0 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+            className={`w-full rounded-2xl border px-4 py-3 text-sm font-medium transition sm:w-auto sm:shrink-0 ${
               isDark
                 ? 'border-white/10 bg-white/5 hover:bg-white/10'
                 : 'border-slate-300 bg-white hover:bg-slate-50'
@@ -1745,7 +1748,7 @@ function TopicSelectorPanel({
           <button
             type="button"
             onClick={onClearAll}
-            className={`shrink-0 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+            className={`w-full rounded-2xl border px-4 py-3 text-sm font-medium transition sm:w-auto sm:shrink-0 ${
               isDark
                 ? 'border-white/10 bg-white/5 hover:bg-white/10'
                 : 'border-slate-300 bg-white hover:bg-slate-50'
@@ -1758,7 +1761,7 @@ function TopicSelectorPanel({
             type="button"
             onClick={onStart}
             disabled={selectedQuestionsCount === 0}
-            className={`shrink-0 rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`col-span-2 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:w-auto sm:shrink-0 ${
               isDark
                 ? 'bg-white text-slate-950 hover:bg-slate-100'
                 : 'bg-slate-950 text-white hover:bg-slate-800'
@@ -1931,7 +1934,7 @@ function QuestionMarathonLayout({
   }, [onPrev, onNext])
 
   return (
-    <section className="mt-10">
+    <section className="mt-6 sm:mt-10">
       <div className="mx-auto max-w-3xl text-center">
         <h1 className="text-3xl font-semibold">{title}</h1>
 
@@ -1962,7 +1965,7 @@ function QuestionMarathonLayout({
         </div>
       ) : (
         <div
-          className={`mx-auto mt-10 max-w-4xl rounded-3xl border p-6 shadow-sm ${
+          className={`mx-auto mt-8 max-w-4xl border-y border-x-0 p-3 shadow-sm sm:mt-10 sm:rounded-3xl sm:border sm:p-6 ${
             isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
           }`}
         >
@@ -1997,11 +2000,11 @@ function QuestionMarathonLayout({
           </div>
 
           <div
-            className={`mt-6 rounded-3xl border p-6 text-center ${
+            className={`mt-6 rounded-3xl border p-4 text-center sm:p-6 ${
               isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-slate-50'
             }`}
           >
-            <h2 className="mx-auto max-w-3xl text-center text-2xl font-semibold leading-9">
+            <h2 className="mx-auto max-w-3xl text-center text-xl font-semibold leading-8 sm:text-2xl sm:leading-9">
               {currentQuestion.text}
             </h2>
 
@@ -2017,23 +2020,23 @@ function QuestionMarathonLayout({
               </span>
               {isAnswerOpen ? text.hideAnswer : text.revealAnswer}
             </button>
-
-            {isAnswerOpen && (
-              <div
-                className={`mx-auto mt-6 max-w-3xl rounded-2xl border p-5 text-left leading-7 ${
-                  isDark
-                    ? 'border-white/10 bg-slate-900/70 text-slate-100'
-                    : 'border-slate-200 bg-white text-slate-700'
-                }`}
-              >
-                {currentQuestion.hasAnswer ? (
-                  <FormattedAnswer text={currentQuestion.answer} />
-                ) : (
-                  <p>{text.answersSoon}</p>
-                )}
-              </div>
-            )}
           </div>
+
+          {isAnswerOpen && (
+            <div
+              className={`mt-3 rounded-3xl border p-4 text-left leading-7 sm:mt-4 sm:p-5 ${
+                isDark
+                  ? 'border-white/10 bg-slate-900/70 text-slate-100'
+                  : 'border-slate-200 bg-white text-slate-700'
+              }`}
+            >
+              {currentQuestion.hasAnswer ? (
+                <FormattedAnswer text={currentQuestion.answer} />
+              ) : (
+                <p>{text.answersSoon}</p>
+              )}
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <button
