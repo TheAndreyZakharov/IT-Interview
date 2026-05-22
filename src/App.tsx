@@ -2619,7 +2619,7 @@ function SiteHeader({
   return (
     <>
       <header
-        className={`grid grid-cols-1 items-center gap-4 rounded-3xl border px-5 py-4 sm:grid-cols-[1fr_auto_1fr] ${
+        className={`grid grid-cols-1 items-center gap-3 rounded-3xl border px-4 py-4 sm:grid-cols-[1fr_auto_1fr] sm:gap-4 sm:px-5 ${
           isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
         }`}
       >
@@ -2633,27 +2633,32 @@ function SiteHeader({
           </span>
         </div>
 
-        <div className="flex items-center justify-center">
+        <div className="flex w-full items-center justify-center">
           <button
             type="button"
             onClick={handleHomeClick}
-            className="cursor-pointer text-xl font-semibold tracking-[0.18em] transition hover:opacity-80 sm:text-2xl"
+            style={{
+              fontSize: 'clamp(28px, 7vw, 20px)',
+              lineHeight: '1',
+              letterSpacing: '0.08em',
+            }}
+            className="w-full cursor-pointer rounded-2xl px-2 py-1 text-center font-semibold transition hover:opacity-80 sm:w-auto sm:px-0 sm:py-0"
           >
             {text.siteTitle}
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-3 sm:justify-end">
+        <div className="flex items-center justify-center gap-2 sm:justify-end">
           {onInterfaceLanguageChange && (
             <div
-              className={`inline-flex rounded-2xl border p-1 ${
+              className={`inline-flex rounded-full border p-0.5 ${
                 isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'
               }`}
             >
               <button
                 type="button"
                 onClick={() => onInterfaceLanguageChange('ru')}
-                className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                className={`rounded-full px-3 py-1 text-xs font-medium transition sm:text-sm ${
                   interfaceLanguage === 'ru'
                     ? isDark
                       ? 'bg-white text-slate-950'
@@ -2668,7 +2673,7 @@ function SiteHeader({
               <button
                 type="button"
                 onClick={() => onInterfaceLanguageChange('en')}
-                className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                className={`rounded-full px-3 py-1 text-xs font-medium transition sm:text-sm ${
                   interfaceLanguage === 'en'
                     ? isDark
                       ? 'bg-white text-slate-950'
@@ -2686,7 +2691,7 @@ function SiteHeader({
           <button
             type="button"
             onClick={onToggleTheme}
-            className={`inline-flex items-center justify-center rounded-2xl border px-3 py-2 leading-none transition ${
+            className={`inline-flex items-center justify-center rounded-full border px-2 py-1 leading-none transition ${
               isDark
                 ? 'border-white/10 bg-white/5 text-slate-200'
                 : 'border-slate-200 bg-slate-50 text-slate-700'
