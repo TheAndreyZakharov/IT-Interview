@@ -126,6 +126,21 @@ function cleanAnswerLine(value) {
   return value.replace(/\r/g, '').trimEnd()
 }
 
+function stripOptionalBlockquote(value) {
+  return value.replace(/^\s*>\s?/, '')
+}
+
+function extractAnswerQuestionText(value) {
+  const normalized = stripOptionalBlockquote(value).trim()
+  const match = normalized.match(/^-\s+\*\*(.+)\*\*\s*$/)
+
+  return match ? normalizeText(match[1]) : null
+}
+
+function isAnswerLabel(value) {
+  return stripOptionalBlockquote(value).trim() === '*Ответ:*'
+}
+
 function buildLanguageContentStats(rootDir, languageDir) {
   const tocFileName =
     languageDir === 'RU' ? 'Table_of_Contents_RU.md' : 'Table_of_Contents_EN.md'
@@ -157,7 +172,7 @@ function buildLanguageContentStats(rootDir, languageDir) {
       const content = readFileIfExists(path.join(rootDir, relativePath))
       answers += content
         .split('\n')
-        .filter((line) => /^\s*-\s+\*\*.+\*\*\s*$/.test(line))
+        .filter((line) => Boolean(extractAnswerQuestionText(line)))
         .length
     }
   }
@@ -281,6 +296,19 @@ function parseAnswerFiles(rootDir, languageDir) {
     let currentHeading = ''
     let currentQuestion = null
     let answerLines = []
+    let answerStarted = false
+    const nextMeaningfulLines = new Array(lines.length)
+    let nextMeaningfulLine = ''
+
+    for (let lineIndex = lines.length - 1; lineIndex >= 0; lineIndex -= 1) {
+      nextMeaningfulLines[lineIndex] = nextMeaningfulLine
+
+      const meaningfulLine = stripOptionalBlockquote(lines[lineIndex]).trim()
+
+      if (meaningfulLine) {
+        nextMeaningfulLine = lines[lineIndex]
+      }
+    }
 
     function flushQuestion() {
       if (!currentQuestion) {
@@ -294,9 +322,11 @@ function parseAnswerFiles(rootDir, languageDir) {
 
       currentQuestion = null
       answerLines = []
+      answerStarted = false
     }
 
-    for (const rawLine of lines) {
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+      const rawLine = lines[lineIndex]
       const line = rawLine.trim()
 
       if (!line) {
@@ -304,6 +334,22 @@ function parseAnswerFiles(rootDir, languageDir) {
           answerLines.push('')
         }
         continue
+      }
+
+      const questionText = extractAnswerQuestionText(line)
+      const nextNonEmptyLine = nextMeaningfulLines[lineIndex]
+
+      if (
+        questionText &&
+        (!answerStarted || isAnswerLabel(nextNonEmptyLine ?? ''))
+      ) {
+        flushQuestion()
+        currentQuestion = questionText
+        continue
+      }
+
+      if (isAnswerLabel(line)) {
+        answerStarted = true
       }
 
       if (line.startsWith('## ')) {
@@ -324,14 +370,8 @@ function parseAnswerFiles(rootDir, languageDir) {
         continue
       }
 
-      if (/^- /.test(line)) {
-        flushQuestion()
-        currentQuestion = normalizeText(line.replace(/^- /, ''))
-        continue
-      }
-
       if (currentQuestion) {
-        const answerLine = rawLine.replace(/^\s*>\s?/, '')
+        const answerLine = stripOptionalBlockquote(rawLine)
         answerLines.push(cleanAnswerLine(answerLine))
       }
     }
