@@ -88,13 +88,6 @@ function readFileIfExists(filePath) {
   return fs.readFileSync(filePath, 'utf8')
 }
 
-function countQuestions(markdown) {
-  return markdown
-    .split('\n')
-    .filter((line) => /^\s*-\s+/.test(line))
-    .length
-}
-
 function countHeadings(markdown) {
   return markdown
     .split('\n')
@@ -133,10 +126,6 @@ function stripOptionalBlockquote(value) {
     result = result.replace(/^\s*>[ \t]?/, '')
   }
   return result
-}
-
-function extractAnswerQuestionText(value, languageDir) {
-  return extractAnswerQuestion(value, languageDir)?.text ?? null
 }
 
 function validateStableId(id, languageDir, context) {
@@ -179,45 +168,16 @@ function isFenceDelimiter(value) {
   return normalized.startsWith('```') || normalized.startsWith('~~~')
 }
 
-function buildLanguageContentStats(rootDir, languageDir) {
+function buildLanguageContentStats(rootDir, languageDir, questions) {
   const tocFileName =
     languageDir === 'RU' ? 'Table_of_Contents_RU.md' : 'Table_of_Contents_EN.md'
 
-  const completeBankFileName =
-    languageDir === 'RU'
-      ? 'Complete_Question_Bank_RU.md'
-      : 'Complete_Question_Bank_EN.md'
-
   const tocPath = path.join(rootDir, languageDir, tocFileName)
-  const completeBankPath = path.join(rootDir, languageDir, completeBankFileName)
-
   const tocContent = readFileIfExists(tocPath)
-  const completeBankContent = readFileIfExists(completeBankPath)
-
-  const answersDirName =
-    languageDir === 'RU'
-      ? 'Questions_with_AI_Answers_By_Topic_RU'
-      : 'Questions_with_AI_Answers_By_Topic_EN'
-
-  const answersDir = path.join(rootDir, languageDir, answersDirName)
-
-  let answers = 0
-
-  if (fs.existsSync(answersDir)) {
-    const files = collectMarkdownFiles(answersDir, rootDir)
-
-    for (const relativePath of files) {
-      const content = readFileIfExists(path.join(rootDir, relativePath))
-      answers += content
-        .split('\n')
-        .filter((line) => Boolean(extractAnswerQuestionText(line, languageDir)))
-        .length
-    }
-  }
 
   return {
-    questions: countQuestions(completeBankContent),
-    answers,
+    questions: questions.length,
+    answers: questions.filter((question) => question.hasAnswer).length,
     headings: countHeadings(tocContent),
   }
 }
@@ -605,18 +565,18 @@ for (const file of markdownFiles) {
   stats.byType[meta.type] += 1
 }
 
-const contentStats = {
-  byLanguage: {
-    RU: buildLanguageContentStats(sourceDir, 'RU'),
-    EN: buildLanguageContentStats(sourceDir, 'EN'),
-  },
-}
-
 const contentData = {
   generatedAt: new Date().toISOString(),
   byLanguage: {
     RU: buildLanguageData(sourceDir, 'RU'),
     EN: buildLanguageData(sourceDir, 'EN'),
+  },
+}
+
+const contentStats = {
+  byLanguage: {
+    RU: buildLanguageContentStats(sourceDir, 'RU', contentData.byLanguage.RU.questions),
+    EN: buildLanguageContentStats(sourceDir, 'EN', contentData.byLanguage.EN.questions),
   },
 }
 
