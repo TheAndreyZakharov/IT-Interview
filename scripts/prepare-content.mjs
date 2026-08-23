@@ -115,6 +115,7 @@ function slugify(value) {
 function normalizeText(value) {
   return value
     .replace(/\r/g, '')
+    .replace(/\s+\[id:\s*[A-Z]{2}-\d{6}\]\s*$/i, '')
     .replace(/\*\*/g, '')
     .replace(/\*/g, '')
     .replace(/__/g, '')
@@ -127,18 +128,55 @@ function cleanAnswerLine(value) {
 }
 
 function stripOptionalBlockquote(value) {
-  return value.replace(/^\s*>\s?/, '')
+  let result = value
+  while (/^\s*>/.test(result)) {
+    result = result.replace(/^\s*>[ \t]?/, '')
+  }
+  return result
 }
 
-function extractAnswerQuestionText(value) {
-  const normalized = stripOptionalBlockquote(value).trim()
-  const match = normalized.match(/^-\s+\*\*(.+)\*\*\s*$/)
+function extractAnswerQuestionText(value, languageDir) {
+  return extractAnswerQuestion(value, languageDir)?.text ?? null
+}
 
-  return match ? normalizeText(match[1]) : null
+function validateStableId(id, languageDir, context) {
+  const normalized = id.toUpperCase()
+  if (!normalized.startsWith(`${languageDir}-`)) {
+    throw new Error(`${context} must use a ${languageDir} ID, received ${id}`)
+  }
+  return normalized
+}
+
+function extractAnswerQuestion(value, languageDir) {
+  const normalized = value.trim()
+  const match = normalized.match(
+    /^-\s+\*\*(.+)\*\*\s+\[id:\s*([A-Z]{2}-\d{6})\]\s*$/i,
+  )
+
+  return match
+    ? {
+        text: normalizeText(match[1]),
+        id: validateStableId(match[2], languageDir, 'Answer question'),
+      }
+    : null
+}
+
+function extractQuestionId(value, languageDir, context) {
+  const match = value.match(/^[-]\s+.+\s+\[id:\s*([A-Z]{2}-\d{6})\]\s*$/i)
+  return match
+    ? validateStableId(match[1], languageDir, context)
+    : null
 }
 
 function isAnswerLabel(value) {
-  return stripOptionalBlockquote(value).trim() === '*Ответ:*'
+  return /^\*{0,2}(Ответ|Answer):?\*{0,2}$/i.test(
+    value.trim(),
+  )
+}
+
+function isFenceDelimiter(value) {
+  const normalized = value.trim()
+  return normalized.startsWith('```') || normalized.startsWith('~~~')
 }
 
 function buildLanguageContentStats(rootDir, languageDir) {
@@ -172,7 +210,7 @@ function buildLanguageContentStats(rootDir, languageDir) {
       const content = readFileIfExists(path.join(rootDir, relativePath))
       answers += content
         .split('\n')
-        .filter((line) => Boolean(extractAnswerQuestionText(line)))
+        .filter((line) => Boolean(extractAnswerQuestionText(line, languageDir)))
         .length
     }
   }
@@ -263,16 +301,6 @@ function buildHeadingId(languageDir, level, title) {
   return `${languageDir.toLowerCase()}__toc__${level}__${slugify(title)}`
 }
 
-function buildQuestionId(languageDir, topicTitle, subtopicTitle, questionText, index) {
-  return [
-    languageDir.toLowerCase(),
-    slugify(topicTitle),
-    slugify(subtopicTitle),
-    slugify(questionText).slice(0, 80),
-    String(index + 1),
-  ].join('__')
-}
-
 function parseAnswerFiles(rootDir, languageDir) {
   const dirName =
     languageDir === 'RU'
@@ -295,8 +323,10 @@ function parseAnswerFiles(rootDir, languageDir) {
     let topicTitle = ''
     let currentHeading = ''
     let currentQuestion = null
+    let currentQuestionId = null
     let answerLines = []
     let answerStarted = false
+    let inFence = false
     const nextMeaningfulLines = new Array(lines.length)
     let nextMeaningfulLine = ''
 
@@ -311,16 +341,19 @@ function parseAnswerFiles(rootDir, languageDir) {
     }
 
     function flushQuestion() {
-      if (!currentQuestion) {
+      if (!currentQuestion || !currentQuestionId) {
         return
       }
 
       const cleanedAnswer = answerLines.join('\n').trim()
-      const key = `${topicTitle}|||${currentHeading}|||${currentQuestion}`
+      if (answerMap.has(currentQuestionId)) {
+        throw new Error(`Duplicate answer ID ${currentQuestionId} in ${relativePath}`)
+      }
 
-      answerMap.set(key, cleanedAnswer)
+      answerMap.set(currentQuestionId, cleanedAnswer)
 
       currentQuestion = null
+      currentQuestionId = null
       answerLines = []
       answerStarted = false
     }
@@ -336,15 +369,40 @@ function parseAnswerFiles(rootDir, languageDir) {
         continue
       }
 
-      const questionText = extractAnswerQuestionText(line)
+      const insideFence = inFence
       const nextNonEmptyLine = nextMeaningfulLines[lineIndex]
 
+      if (!insideFence && /^\s*>(?:\s|$)/.test(rawLine)) {
+        throw new Error(
+          `Answer files must not contain blockquote prefixes in ${relativePath}:${lineIndex + 1}`,
+        )
+      }
+
+      const parsedQuestion = extractAnswerQuestion(line, languageDir)
+
       if (
-        questionText &&
+        parsedQuestion &&
+        (!insideFence || isAnswerLabel(nextNonEmptyLine ?? '')) &&
         (!answerStarted || isAnswerLabel(nextNonEmptyLine ?? ''))
       ) {
         flushQuestion()
-        currentQuestion = questionText
+        currentQuestion = parsedQuestion.text
+        currentQuestionId = parsedQuestion.id
+        continue
+      }
+
+      if (
+        !insideFence &&
+        /^-{1,2}\s+\*\*/.test(line)
+      ) {
+        throw new Error(`Answer question must contain a valid ID in ${relativePath}:${lineIndex + 1}`)
+      }
+
+      if (isFenceDelimiter(line)) {
+        if (currentQuestion) {
+          answerLines.push(cleanAnswerLine(rawLine))
+        }
+        inFence = !inFence
         continue
       }
 
@@ -397,6 +455,7 @@ function parseQuestionsByTopic(rootDir, languageDir) {
 
   const files = collectMarkdownFiles(dirPath, rootDir).sort()
   const result = []
+  const seenQuestionIds = new Set()
 
   for (const relativePath of files) {
     const content = readFileIfExists(path.join(rootDir, relativePath))
@@ -405,13 +464,25 @@ function parseQuestionsByTopic(rootDir, languageDir) {
     let topicTitle = ''
     let currentHeading = ''
     let currentHeadingLevel = 3
-    let questionIndex = 0
 
-    for (const rawLine of lines) {
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+      const rawLine = lines[lineIndex]
       const line = rawLine.trim()
 
       if (!line) {
         continue
+      }
+
+      if (/^\s+[-*]\s+/.test(rawLine)) {
+        throw new Error(
+          `Questions must be single-line top-level entries; nested list item found in ${relativePath}:${lineIndex + 1}`,
+        )
+      }
+
+      if (/^>/.test(line) || /^-{2,}\s+/.test(line)) {
+        throw new Error(
+          `Questions must use the canonical '- question [id: ...]' format in ${relativePath}:${lineIndex + 1}`,
+        )
       }
 
       if (line.startsWith('## ')) {
@@ -431,13 +502,24 @@ function parseQuestionsByTopic(rootDir, languageDir) {
         continue
       }
 
-      if (/^- /.test(line)) {
+      if (/^-\s/.test(rawLine)) {
+        const stableQuestionId = extractQuestionId(
+          line,
+          languageDir,
+          `Question in ${relativePath}:${lineIndex + 1}`,
+        )
+        if (!stableQuestionId) {
+          throw new Error(`Question must contain a valid ID in ${relativePath}:${lineIndex + 1}`)
+        }
+        if (seenQuestionIds.has(stableQuestionId)) {
+          throw new Error(`Duplicate question ID ${stableQuestionId} in ${relativePath}:${lineIndex + 1}`)
+        }
+        seenQuestionIds.add(stableQuestionId)
         const questionText = normalizeText(line.replace(/^- /, ''))
-        const answerKey = `${topicTitle}|||${currentHeading}|||${questionText}`
-        const answer = answerMap.get(answerKey) ?? ''
+        const answer = answerMap.get(stableQuestionId) ?? ''
 
         result.push({
-          id: buildQuestionId(languageDir, topicTitle, currentHeading, questionText, questionIndex),
+          id: stableQuestionId,
           text: questionText,
           answer,
           hasAnswer: Boolean(answer.trim()),
@@ -450,9 +532,14 @@ function parseQuestionsByTopic(rootDir, languageDir) {
             buildHeadingId(languageDir, currentHeadingLevel, currentHeading),
           ],
         })
-
-        questionIndex += 1
       }
+    }
+  }
+
+  const questionIds = new Set(result.map((question) => question.id))
+  for (const answerId of answerMap.keys()) {
+    if (!questionIds.has(answerId)) {
+      throw new Error(`Answer ${answerId} has no matching question in ${languageDir}`)
     }
   }
 
